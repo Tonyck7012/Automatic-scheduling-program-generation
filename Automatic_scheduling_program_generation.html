@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026年6月排班表（改良版）</title>
+    <style>
+        body { font-family: 'Microsoft JhengHei', Arial, sans-serif; padding: 10px; max-width: 100%; overflow-x: auto; }
+        h1 { text-align: center; color: #2c3e50; font-size: 1.5em; }
+        .section { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px auto; max-width: 500px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+        textarea, select, input[type="date"], button {
+            width: 100%; max-width: 350px; font-size: 14px; padding: 8px; margin-bottom: 10px;
+            border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
+        }
+        button {
+            background: #3498db; color: white; border: none; cursor: pointer; font-size: 16px;
+            -webkit-appearance: none; /* 確保手機按鈕樣式正常 */
+        }
+        button:hover { background: #2980b9; }
+        .error-message {
+            background: #ffe0e0; color: #c0392b; padding: 8px; border-radius: 4px; margin: 10px 0;
+            display: none;
+        }
+        .leave-list { margin-top: 10px; font-size: 13px; }
+        .leave-item { display: flex; justify-content: space-between; align-items: center;
+                       background: white; padding: 5px 10px; border: 1px solid #ddd;
+                       border-radius: 4px; margin-bottom: 5px; }
+        .leave-item button { width: auto; padding: 3px 8px; font-size: 12px; background: #e74c3c; }
+        .controls { text-align: center; margin: 15px 0; }
+        .status { text-align: center; margin: 10px 0; font-size: 16px; color: #555; }
+        .table-container { overflow-x: auto; margin-top: 20px; -webkit-overflow-scrolling: touch; }
+        table { border-collapse: collapse; width: 100%; min-width: 1500px; font-size: 12px; }
+        th, td { border: 1px solid #ccc; padding: 4px 2px; text-align: center; white-space: nowrap; }
+        th { background: #ecf0f1; position: sticky; top: 0; z-index: 2; }
+        .person-col { background: #f9f9f9; font-weight: bold; min-width: 70px; }
+        .weekend { background-color: #ffe0e0; }
+        .rest { color: #999; }
+        .shift-A { background: #c8e6c9; }
+        .shift-B { background: #bbdefb; }
+        .shift-C { background: #fff9c4; }
+        .shift-D { background: #e1bee7; }
+        .summary { margin-top: 25px; font-size: 14px; }
+        .check-ok { color: green; }
+        .check-fail { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>📅 2026年6月 編更表（39人）</h1>
+
+    <!-- 錯誤訊息區 -->
+    <div id="errorBox" class="error-message"></div>
+
+    <!-- 姓名輸入 -->
+    <div class="section">
+        <label for="nameInput">👥 輸入人員姓名（一行一個，共39人）：</label>
+        <textarea id="nameInput" rows="8" placeholder="一人一行，預設為 P01～P39"></textarea>
+        <small>目前人數：<span id="nameCount">39</span></small>
+    </div>
+
+    <!-- 請假設定 -->
+    <div class="section">
+        <label>📌 設定員工請假</label>
+        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+            <select id="leavePerson" style="flex:1; min-width:100px;">
+                <option value="">--選擇員工--</option>
+            </select>
+            <input type="date" id="leaveStart" min="2026-06-01" max="2026-06-30" style="flex:1; min-width:120px;" placeholder="開始日期">
+            <input type="date" id="leaveEnd" min="2026-06-01" max="2026-06-30" style="flex:1; min-width:120px;" placeholder="結束日期">
+            <button onclick="addLeave()" style="flex:0 0 auto; width:auto; padding:8px 15px;">➕ 新增請假</button>
+        </div>
+        <div id="leaveList" class="leave-list"></div>
+        <small>請假日期內該員工強制休息。</small>
+    </div>
+
+    <div class="controls">
+        <button id="generateBtn" onclick="generateSchedule()">🔄 生成 / 重新生成班表</button>
+    </div>
+
+    <div id="status" class="status"></div>
+    <div id="schedule-output" class="table-container"></div>
+    <div id="summary" class="summary"></div>
+
+    <script>
+        // ==================== 參數 ====================
+        const NUM_PEOPLE = 39;
+        const YEAR = 2026, MONTH = 5; // 5 = 6月
+        const SHIFT_NAMES = ['休', 'A', 'B', 'C', 'D'];
+        const WEEKDAY_DEMAND = [0, 6, 6, 6, 5];
+        const WEEKEND_DEMAND = [0, 5, 3, 4, 0];
+        let leaveEntries = [];
+
+        // ==================== 日期 ====================
+        function getDaysInMonth(y, m) {
+            const date = new Date(y, m + 1, 0);
+            const numDays = date.getDate();
+            const days = [], isHoliday = [];
+            for (let d = 1; d <= numDays; d++) {
+                const cur = new Date(y, m, d);
+                days.push(cur);
+                isHoliday.push(cur.getDay() === 0 || cur.getDay() === 6);
+            }
+            return { days, isHoliday };
+        }
+        const monthData = getDaysInMonth(YEAR, MONTH);
+        const numDays = monthData.days.length;
+        const isHoliday = monthData.isHoliday;
+        const totalWeekdays = isHoliday.filter(h => !h).length;
+        const totalWeekends = isHoliday.filter(h => h).length;
+        const totalDemand = (WEEKDAY_DEMAND[1]+WEEKDAY_DEMAND[2]+WEEKDAY_DEMAND[3]+WEEKDAY_DEMAND[4]) * totalWeekdays +
+                            (WEEKEND_DEMAND[1]+WEEKEND_DEMAND[2]+WEEKEND_DEMAND[3]) * totalWeekends;
+
+        // ==================== UI 輔助 ====================
+        function showError(msg) {
+            const box = document.getElementById('errorBox');
+            box.textContent = msg;
+            box.style.display = msg ? 'block' : 'none';
+        }
+
+        function updateNameCount() {
+            const raw = document.getElementById('nameInput').value.trim();
+            const lines = raw.split('\n').filter(s => s.trim().length > 0);
+            document.getElementById('nameCount').textContent = lines.length;
+            updateLeavePersonSelect();
+        }
+
+        function initDefaultNames() {
+            const names = Array.from({length: NUM_PEOPLE}, (_, i) => `P${String(i+1).padStart(2,'0')}`);
+            document.getElementById('nameInput').value = names.join('\n');
+            updateNameCount();
+        }
+
+        function getNames() {
+            const raw = document.getElementById('nameInput').value.trim();
+            const lines = raw.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+            if (lines.length !== NUM_PEOPLE) {
+                showError(`人數錯誤！需要 ${NUM_PEOPLE} 個姓名，目前有 ${lines.length} 個。請修正後再試。`);
+                return null;
+            }
+            showError('');
+            return lines;
+        }
+
+        document.getElementById('nameInput').addEventListener('input', updateNameCount);
+
+        function updateLeavePersonSelect() {
+            const names = getNames(); // 可能返回 null，但要確保 select 仍可用
+            const select = document.getElementById('leavePerson');
+            select.innerHTML = '<option value="">--選擇員工--</option>';
+            if (!names) return;
+            names.forEach((name, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.textContent = name;
+                select.appendChild(opt);
+            });
+        }
+
+        // ==================== 請假 ====================
+        function addLeave() {
+            const personIndex = parseInt(document.getElementById('leavePerson').value);
+            const startDate = document.getElementById('leaveStart').value;
+            const endDate = document.getElementById('leaveEnd').value;
+            if (isNaN(personIndex)) { alert('請選擇員工'); return; }
+            if (!startDate || !endDate) { alert('請選擇日期'); return; }
+            const start = new Date(startDate + 'T00:00:00');
+            const end = new Date(endDate + 'T00:00:00');
+            if (start > end) { alert('開始日期不能晚於結束日期'); return; }
+            const monthStart = new Date(2026,5,1), monthEnd = new Date(2026,5,30);
+            if (start < monthStart || end > monthEnd) { alert('日期必須在2026年6月內'); return; }
+            leaveEntries.push({ personIndex, startDay: start.getDate(), endDay: end.getDate() });
+            renderLeaveList();
+            document.getElementById('leaveStart').value = '';
+            document.getElementById('leaveEnd').value = '';
+        }
+
+        function removeLeave(idx) {
+            leaveEntries.splice(idx, 1);
+            renderLeaveList();
+        }
+
+        function renderLeaveList() {
+            const container = document.getElementById('leaveList');
+            if (leaveEntries.length === 0) {
+                container.innerHTML = '<p style="color:#888;">尚未設定任何請假</p>';
+                return;
+            }
+            const names = getNames() || [];
+            let html = '';
+            leaveEntries.forEach((e, i) => {
+                const name = names[e.personIndex] || `員工${e.personIndex+1}`;
+                const range = e.startDay === e.endDay ? `6月${e.startDay}日` : `6月${e.startDay}日 ~ 6月${e.endDay}日`;
+                html += `<div class="leave-item"><span>${name}：${range} 請假</span><button onclick="removeLeave(${i})">刪除</button></div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function buildLeaveSets() {
+            const leaves = Array.from({length: NUM_PEOPLE}, () => new Set());
+            leaveEntries.forEach(e => {
+                for (let d = e.startDay; d <= e.endDay; d++) leaves[e.personIndex].add(d-1);
+            });
+            return leaves;
+        }
+
+        function checkFeasibility(leaves) {
+            for (let d = 0; d < numDays; d++) {
+                const demand = isHoliday[d] ? WEEKEND_DEMAND : WEEKDAY_DEMAND;
+                const needed = demand[1]+demand[2]+demand[3]+demand[4];
+                let available = NUM_PEOPLE;
+                for (let p = 0; p < NUM_PEOPLE; p++) if (leaves[p].has(d)) available--;
+                if (available < needed) {
+                    const date = monthData.days[d];
+                    return `${date.getMonth()+1}/${date.getDate()} 人力不足：需要${needed}人，只有${available}人可用。請減少請假。`;
+                }
+            }
+            return null;
+        }
+
+        // ==================== 排班求解 ====================
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+        }
+
+        function solveRoster(leaves) {
+            let roster = Array.from({length: NUM_PEOPLE}, () => new Array(numDays).fill(0));
+            // 初始化解
+            for (let d = 0; d < numDays; d++) {
+                const demand = isHoliday[d] ? WEEKEND_DEMAND : WEEKDAY_DEMAND;
+                const totalOnDuty = demand[1]+demand[2]+demand[3]+demand[4];
+                const available = [];
+                for (let p = 0; p < NUM_PEOPLE; p++) if (!leaves[p].has(d)) available.push(p);
+                shuffleArray(available);
+                const selected = available.slice(0, totalOnDuty);
+                const pool = [];
+                for (let s = 1; s <= 4; s++) for (let k = 0; k < demand[s]; k++) pool.push(s);
+                shuffleArray(pool);
+                for (let i = 0; i < totalOnDuty; i++) roster[selected[i]][d] = pool[i];
+            }
+
+            function calcConflicts(s) {
+                let total = 0;
+                for (let p = 0; p < NUM_PEOPLE; p++) {
+                    let cons = 0;
+                    for (let d = 0; d < numDays; d++) {
+                        if (s[p][d] !== 0) { cons++; if (cons > 4) total++; }
+                        else cons = 0;
+                    }
+                }
+                return total;
+            }
+
+            function delta(p1, p2, d, sched) {
+                const o1 = sched[p1][d], o2 = sched[p2][d];
+                if (o1 === o2) return 0;
+                sched[p1][d] = o2; sched[p2][d] = o1;
+                let nc = 0;
+                for (const p of [p1, p2]) {
+                    let c = 0;
+                    for (let day = 0; day < numDays; day++) {
+                        if (sched[p][day] !== 0) { c++; if (c > 4) nc++; }
+                        else c = 0;
+                    }
+                }
+                sched[p1][d] = o1; sched[p2][d] = o2;
+                let oc = 0;
+                for (const p of [p1, p2]) {
+                    let c = 0;
+                    for (let day = 0; day < numDays; day++) {
+                        if (sched[p][day] !== 0) { c++; if (c > 4) oc++; }
+                        else c = 0;
+                    }
+                }
+                return nc - oc;
+            }
+
+            let schedule = roster;
+            let conflict = calcConflicts(schedule);
+            const startTime = Date.now();
+            const TIME_LIMIT = 15000;
+            for (let iter = 0; iter < 200000; iter++) {
+                if (conflict === 0) break;
+                if (Date.now() - startTime > TIME_LIMIT) break;
+                const cPeople = [];
+                for (let p = 0; p < NUM_PEOPLE; p++) {
+                    let c = 0;
+                    for (let d = 0; d < numDays; d++) {
+                        if (schedule[p][d] !== 0) { c++; if (c > 4) { cPeople.push(p); break; } }
+                        else c = 0;
+                    }
+                }
+                let p1 = cPeople.length && Math.random() < 0.8 ? cPeople[Math.floor(Math.random()*cPeople.length)] : Math.floor(Math.random()*NUM_PEOPLE);
+                let d = Math.floor(Math.random()*numDays);
+                if (leaves[p1].has(d)) continue;
+                let p2;
+                do { p2 = Math.floor(Math.random()*NUM_PEOPLE); } while (p2 === p1);
+                if (leaves[p2].has(d)) continue;
+                if (schedule[p1][d] === schedule[p2][d]) continue;
+                const dlt = delta(p1, p2, d, schedule);
+                if (dlt <= 0 || Math.random() < 0.02) {
+                    [schedule[p1][d], schedule[p2][d]] = [schedule[p2][d], schedule[p1][d]];
+                    conflict += dlt;
+                }
+            }
+            return { success: conflict === 0, schedule, conflict };
+        }
+
+        // ==================== 顯示 ====================
+        function displaySchedule(schedule, names, leaves) {
+            let html = '<table><tr><th class="person-col">姓名</th>';
+            for (let d = 0; d < numDays; d++) {
+                const date = monthData.days[d];
+                const dow = '日一二三四五六'[date.getDay()];
+                html += `<th class="${isHoliday[d] ? 'weekend' : ''}">${date.getDate()}日<br>週${dow}</th>`;
+            }
+            html += '</tr>';
+            for (let p = 0; p < NUM_PEOPLE; p++) {
+                html += `<tr><td class="person-col">${names[p]}</td>`;
+                for (let d = 0; d < numDays; d++) {
+                    const s = schedule[p][d];
+                    const sn = SHIFT_NAMES[s];
+                    let cls = s === 0 ? 'rest' : s === 1 ? 'shift-A' : s === 2 ? 'shift-B' : s === 3 ? 'shift-C' : 'shift-D';
+                    if (isHoliday[d]) cls += ' weekend';
+                    if (leaves[p].has(d)) cls += ' rest';
+                    html += `<td class="${cls}">${sn}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</table>';
+            document.getElementById('schedule-output').innerHTML = html;
+
+            let check = '<h2>📊 檢查結果</h2>';
+            let dayOk = true;
+            for (let d = 0; d < numDays; d++) {
+                const demand = isHoliday[d] ? WEEKEND_DEMAND : WEEKDAY_DEMAND;
+                const cnt = [0,0,0,0,0];
+                for (let p = 0; p < NUM_PEOPLE; p++) cnt[schedule[p][d]]++;
+                for (let s = 1; s <= 4; s++) if (cnt[s] !== demand[s]) { dayOk = false; break; }
+            }
+            check += `<p>每日需求：<span class="${dayOk ? 'check-ok' : 'check-fail'}">${dayOk ? '✅' : '❌'} ${dayOk ? '完全符合' : '有誤'}</span></p>`;
+
+            let consOk = true;
+            for (let p = 0; p < NUM_PEOPLE; p++) {
+                let c = 0;
+                for (let d = 0; d < numDays; d++) {
+                    if (schedule[p][d] !== 0) { c++; if (c > 4) { consOk = false; break; } }
+                    else c = 0;
+                }
+            }
+            check += `<p>連續上班：<span class="${consOk ? 'check-ok' : 'check-fail'}">${consOk ? '✅' : '❌'} ${consOk ? '冇人連續5天' : '有人連續超過4天'}</span></p>`;
+
+            let leaveOk = true;
+            for (let p = 0; p < NUM_PEOPLE; p++) for (let d of leaves[p]) if (schedule[p][d] !== 0) { leaveOk = false; break; }
+            check += `<p>請假休息：<span class="${leaveOk ? 'check-ok' : 'check-fail'}">${leaveOk ? '✅' : '❌'} ${leaveOk ? '正確' : '有請假未休息'}</span></p>`;
+
+            const totalWork = schedule.flat().filter(v => v).length;
+            check += `<p>總人天：${totalWork} (需求${totalDemand}) ${totalWork === totalDemand ? '✅' : '❌'}</p>`;
+            document.getElementById('summary').innerHTML = check;
+        }
+
+        // ==================== 主流程 ====================
+        async function generateSchedule() {
+            const statusDiv = document.getElementById('status');
+            const scheduleDiv = document.getElementById('schedule-output');
+            const summaryDiv = document.getElementById('summary');
+            // 清空
+            scheduleDiv.innerHTML = '';
+            summaryDiv.innerHTML = '';
+            showError('');
+
+            // 取得姓名
+            const names = getNames();
+            if (!names) return;
+
+            // 處理請假
+            const leaves = buildLeaveSets();
+            const feasErr = checkFeasibility(leaves);
+            if (feasErr) {
+                statusDiv.innerHTML = '❌ ' + feasErr;
+                return;
+            }
+
+            statusDiv.innerHTML = '⏳ 正在計算班表，請稍候...';
+            // 鎖定按鈕防止重複點擊
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            btn.textContent = '計算中...';
+
+            // 讓 UI 有機會更新
+            await new Promise(r => setTimeout(r, 50));
+
+            let result = null;
+            for (let attempt = 1; attempt <= 5; attempt++) {
+                result = solveRoster(leaves);
+                if (result.success) break;
+                statusDiv.innerHTML = `⏳ 第 ${attempt} 次嘗試中...`;
+                await new Promise(r => setTimeout(r, 50));
+            }
+
+            btn.disabled = false;
+            btn.textContent = '🔄 生成 / 重新生成班表';
+
+            if (result && result.success) {
+                statusDiv.innerHTML = '✅ 成功生成符合所有條件的班表！';
+                displaySchedule(result.schedule, names, leaves);
+            } else {
+                statusDiv.innerHTML = '❌ 暫時無法生成，請再按一次，或減少請假人數。';
+            }
+        }
+
+        // ==================== 初始化 ====================
+        window.onload = function() {
+            initDefaultNames();
+            renderLeaveList();
+            generateSchedule();
+        };
+    </script>
+</body>
+</html>
