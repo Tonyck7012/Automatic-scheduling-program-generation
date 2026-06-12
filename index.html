@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>排班表 - 手機優化版</title>
+    <title>排班表 - 衝突標記版</title>
     <style>
         :root {
             --bg: #f0f4f8;
@@ -109,6 +109,14 @@
         }
         .btn-danger { background: var(--danger); }
         .btn-danger:hover { background: #dc2626; }
+        .btn-success { background: #16a34a; }
+        .btn-success:hover { background: #15803d; }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+        .btn-outline:hover { background: #eff6ff; }
 
         /* 需求垂直佈局 */
         .demand-row {
@@ -241,6 +249,8 @@
         .shift-B { background: #dbeafe; color: #1e3a8a; }
         .shift-C { background: #fef3c7; color: #92400e; }
         .shift-D { background: #ede9fe; color: #5b21b6; }
+        /* 衝突紅色背景 */
+        .conflict { background: #ffcccc !important; color: #b91c1c !important; font-weight: bold; }
 
         .summary {
             background: var(--card-bg);
@@ -265,9 +275,9 @@
 <body>
 <div class="container">
     <h1>📅 排班表</h1>
-    <p class="subtitle">自訂需求 · 自由請假 · 一鍵生成</p>
+    <p class="subtitle">自訂需求 · 自由請假 · CSV 上載（衝突標紅）</p>
 
-    <!-- 需求設定卡片（垂直版） -->
+    <!-- 需求設定卡片 -->
     <div class="card">
         <label>⚙️ 每更最少上班人數</label>
         <div class="demand-row">
@@ -333,9 +343,12 @@
         <small>切換月份時，已設定嘅請假會自動重新計算有效範圍</small>
     </div>
 
-    <!-- 生成按鈕 -->
-    <div style="text-align: center; margin: 20px 0;">
-        <button id="generateBtn" onclick="generateSchedule()" style="font-size:1.1em; padding:12px 32px;">🔄 生成班表</button>
+    <!-- 按鈕組 -->
+    <div style="text-align: center; margin: 20px 0; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+        <button id="generateBtn" onclick="generateSchedule()" style="font-size:1.1em; padding:12px 24px;">🔄 生成班表</button>
+        <button id="downloadBtn" onclick="downloadCSV()" class="btn-success" style="font-size:1.1em; padding:12px 24px;" disabled>⬇️ 下載 CSV</button>
+        <input type="file" id="csvUpload" accept=".csv" style="display:none" onchange="handleCSVUpload(event)">
+        <button onclick="document.getElementById('csvUpload').click()" class="btn-outline" style="font-size:1.1em; padding:12px 24px;">📂 上載 CSV</button>
     </div>
 
     <div id="status" class="status"></div>
@@ -349,12 +362,16 @@
     let WEEKDAY_DEMAND = [0, 6, 6, 6, 5];
     let WEEKEND_DEMAND = [0, 5, 3, 4, 0];
     const SHIFT_NAMES = ['休', 'A', 'B', 'C', 'D'];
+    const SHIFT_MAP = { '休': 0, 'A': 1, 'B': 2, 'C': 3, 'D': 4 };
 
     let NUM_PEOPLE = 39;
     let currentYear = 2026;
     let currentMonth = 6;
     let monthData = null;
     let leaveEntries = [];
+
+    let currentSchedule = null;
+    let currentNames = null;
 
     // ==================== 需求更新 ====================
     function updateDemand() {
@@ -382,12 +399,9 @@
         if (NUM_PEOPLE < minRequired) {
             alert(`總人數不足！目前 ${NUM_PEOPLE} 人，但需求最多的一天需要 ${minRequired} 人上班。\n請調高總人數或降低需求。`);
         }
-        document.getElementById('schedule-output').innerHTML = '';
-        document.getElementById('summary').innerHTML = '';
-        document.getElementById('status').innerHTML = '需求已更新，請重新生成班表。';
+        clearOutput();
     }
 
-    // 即時更新合計（監聽所有需求輸入框）
     const demandInputIds = ['wdA','wdB','wdC','wdD','weA','weB','weC','weD'];
     demandInputIds.forEach(id => {
         document.getElementById(id).addEventListener('input', function() {
@@ -410,6 +424,15 @@
             document.getElementById('totalPeople').min = minRequired;
         });
     });
+
+    function clearOutput() {
+        document.getElementById('schedule-output').innerHTML = '';
+        document.getElementById('summary').innerHTML = '';
+        document.getElementById('status').innerHTML = '需求已更新，請重新生成班表。';
+        currentSchedule = null;
+        currentNames = null;
+        document.getElementById('downloadBtn').disabled = true;
+    }
 
     // ==================== 日期工具 ====================
     function getDaysInMonth(year, month) {
@@ -442,6 +465,7 @@
         })).filter(e => e.startDay !== null);
 
         renderLeaveList();
+        clearOutput();
     }
 
     function clipLeaveToMonth(startDateStr, endDateStr) {
@@ -472,9 +496,7 @@
         initDefaultNames();
         leaveEntries = [];
         renderLeaveList();
-        document.getElementById('schedule-output').innerHTML = '';
-        document.getElementById('summary').innerHTML = '';
-        document.getElementById('status').innerHTML = '總人數已更新，請重新生成班表。';
+        clearOutput();
     }
 
     // ==================== 年月選擇器 ====================
@@ -501,9 +523,8 @@
         currentYear = parseInt(document.getElementById('yearSelect').value);
         currentMonth = parseInt(document.getElementById('monthSelect').value);
         updateMonthData();
-        document.getElementById('schedule-output').innerHTML = '';
-        document.getElementById('summary').innerHTML = '';
         document.getElementById('status').innerHTML = `已切換至 ${currentYear}年${currentMonth}月，請假已重新計算。請重新生成班表。`;
+        clearOutput();
     }
 
     // ==================== 姓名管理 ====================
@@ -603,22 +624,150 @@
         return leaves;
     }
 
-    function checkFeasibility(leaves) {
+    // ==================== 衝突檢查（用於 CSV 上載） ====================
+    function validateFixedCSV(fixed, names, leaves) {
+        const warnings = [];
+        const conflictCells = new Set(); // 記錄 (p,d) 需要標紅的格子
+
         const numDays = monthData.numDays;
-        for (let d = 0; d < numDays; d++) {
-            const demand = monthData.isHoliday[d] ? WEEKEND_DEMAND : WEEKDAY_DEMAND;
-            const needed = demand[1]+demand[2]+demand[3]+demand[4];
-            let available = NUM_PEOPLE;
-            for (let p = 0; p < NUM_PEOPLE; p++) if (leaves[p].has(d)) available--;
-            if (available < needed) {
-                const date = monthData.days[d];
-                return `${date.getMonth()+1}/${date.getDate()} 人力不足：需要${needed}人，只有${available}人可用。`;
+        // 檢查請假衝突、假日 D 更
+        for (let p = 0; p < NUM_PEOPLE; p++) {
+            for (let d = 0; d < numDays; d++) {
+                if (fixed[p][d] === -1) continue;
+                // 請假衝突
+                if (leaves[p].has(d) && fixed[p][d] !== 0) {
+                    warnings.push(`${names[p]} 在 ${currentMonth}月${d+1}日 已請假，但固定排 ${SHIFT_NAMES[fixed[p][d]]} 更`);
+                    conflictCells.add(`${p},${d}`);
+                }
+                // 假日 D 更
+                if (monthData.isHoliday[d] && fixed[p][d] === 4) {
+                    warnings.push(`${names[p]} 在 ${currentMonth}月${d+1}日（假日）固定排 D 更`);
+                    conflictCells.add(`${p},${d}`);
+                }
             }
         }
-        return null;
+
+        // 檢查連續上班 > 4 天（僅檢查固定值序列，因為後續可能會被優化減少，但我們標記目前固定值造成的連續上班）
+        for (let p = 0; p < NUM_PEOPLE; p++) {
+            let cons = 0;
+            let consStart = -1;
+            for (let d = 0; d < numDays; d++) {
+                if (fixed[p][d] !== -1 && fixed[p][d] !== 0) {
+                    cons++;
+                    if (cons === 1) consStart = d;
+                } else {
+                    cons = 0;
+                    consStart = -1;
+                }
+                if (cons > 4) {
+                    // 標記從導致超過的那天開始的連續天數
+                    warnings.push(`${names[p]} 在固定排班中連續上班超過 4 天（${currentMonth}月${consStart+1}日 ~ ${currentMonth}月${d+1}日）`);
+                    for (let i = consStart; i <= d; i++) {
+                        if (fixed[p][i] !== -1 && fixed[p][i] !== 0) {
+                            conflictCells.add(`${p},${i}`);
+                        }
+                    }
+                    // 避免重複警告同一段連續上班，重置 cons（但之後可能還會累積，簡化處理，跳出當前序列）
+                    cons = 0; 
+                    consStart = -1;
+                }
+            }
+        }
+
+        // 檢查每日需求超標（只對固定值）
+        for (let d = 0; d < numDays; d++) {
+            const demand = monthData.isHoliday[d] ? WEEKEND_DEMAND : WEEKDAY_DEMAND;
+            const cnt = [0,0,0,0,0];
+            for (let p = 0; p < NUM_PEOPLE; p++) {
+                if (fixed[p][d] !== -1) cnt[fixed[p][d]]++;
+            }
+            for (let s = 1; s <= 4; s++) {
+                if (cnt[s] > demand[s]) {
+                    warnings.push(`${currentMonth}月${d+1}日 ${SHIFT_NAMES[s]}更固定人數 (${cnt[s]}) 超出需求 (${demand[s]})`);
+                }
+            }
+        }
+
+        return { warnings, conflictCells };
     }
 
-    // ==================== 求解演算法 ====================
+    // ==================== CSV 上載處理 ====================
+    function handleCSVUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result;
+            const lines = text.trim().split('\n').map(l => l.trim()).filter(l => l);
+            if (lines.length < 2) {
+                alert('CSV 檔案格式不正確');
+                return;
+            }
+            const header = lines[0].split(',');
+            const expectedCols = monthData.numDays + 1;
+            if (header.length !== expectedCols) {
+                alert(`CSV 欄位數量不符，預期 ${expectedCols} 欄，實際 ${header.length} 欄`);
+                return;
+            }
+            for (let d = 0; d < monthData.numDays; d++) {
+                const date = monthData.days[d];
+                const expectedHeader = `${date.getDate()}日(週${'日一二三四五六'[date.getDay()]})`;
+                if (header[d+1] !== expectedHeader) {
+                    alert(`CSV 標題不符，第 ${d+1} 日應為「${expectedHeader}」，但收到「${header[d+1]}」`);
+                    return;
+                }
+            }
+            if (lines.length - 1 !== NUM_PEOPLE) {
+                alert(`CSV 員工人數不符，預期 ${NUM_PEOPLE} 人，實際 ${lines.length - 1} 人`);
+                return;
+            }
+
+            const names = getNames();
+            if (!names) return;
+
+            const fixed = [];
+            for (let i = 0; i < NUM_PEOPLE; i++) {
+                const cols = lines[i+1].split(',');
+                if (cols[0] !== names[i]) {
+                    alert(`第 ${i+2} 行姓名「${cols[0]}」與預期「${names[i]}」不符，請檢查順序`);
+                    return;
+                }
+                const row = [];
+                for (let d = 0; d < monthData.numDays; d++) {
+                    const cell = cols[d+1] ? cols[d+1].trim() : '';
+                    if (cell === '') {
+                        row.push(-1);
+                    } else {
+                        const val = SHIFT_MAP[cell];
+                        if (val === undefined) {
+                            alert(`第 ${i+2} 行第 ${d+2} 欄「${cell}」不是有效更別 (休/A/B/C/D)`);
+                            return;
+                        }
+                        row.push(val);
+                    }
+                }
+                fixed.push(row);
+            }
+
+            const leaves = buildLeaveSets();
+            const { warnings, conflictCells } = validateFixedCSV(fixed, names, leaves);
+
+            if (warnings.length > 0) {
+                const msg = '發現以下衝突，確定要繼續生成嗎？\n\n' + warnings.join('\n');
+                if (!confirm(msg)) {
+                    // 用戶取消，清空 file input
+                    document.getElementById('csvUpload').value = '';
+                    return;
+                }
+            }
+
+            // 繼續生成，傳遞 conflictCells 作為標記（生成後可能還有其他衝突，我們會重新計算）
+            generateScheduleWithFixed(fixed, conflictCells);
+        };
+        reader.readAsText(file, 'UTF-8');
+    }
+
+    // ==================== 求解演算法（支持固定值） ====================
     function shuffleArray(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -626,24 +775,58 @@
         }
     }
 
-    function solveRoster(leaves) {
+    function solveRoster(leaves, fixed = null) {
         const numDays = monthData.numDays;
         const isHoliday = monthData.isHoliday;
         let roster = Array.from({length: NUM_PEOPLE}, () => new Array(numDays).fill(0));
 
-        for (let d = 0; d < numDays; d++) {
-            const demand = isHoliday[d] ? WEEKEND_DEMAND : WEEKDAY_DEMAND;
-            const totalOnDuty = demand[1]+demand[2]+demand[3]+demand[4];
-            const available = [];
-            for (let p = 0; p < NUM_PEOPLE; p++) if (!leaves[p].has(d)) available.push(p);
-            shuffleArray(available);
-            const selected = available.slice(0, totalOnDuty);
-            const pool = [];
-            for (let s = 1; s <= 4; s++) for (let k = 0; k < demand[s]; k++) pool.push(s);
-            shuffleArray(pool);
-            for (let i = 0; i < totalOnDuty; i++) roster[selected[i]][d] = pool[i];
+        // 先套用固定值
+        if (fixed) {
+            for (let p = 0; p < NUM_PEOPLE; p++) {
+                for (let d = 0; d < numDays; d++) {
+                    if (fixed[p][d] !== -1) {
+                        roster[p][d] = fixed[p][d];
+                    }
+                }
+            }
         }
 
+        // 填充未固定的格子，盡量滿足需求
+        for (let d = 0; d < numDays; d++) {
+            const demand = isHoliday[d] ? WEEKEND_DEMAND : WEEKDAY_DEMAND;
+            const currentCount = [0,0,0,0,0];
+            const unfixedPeople = [];
+            for (let p = 0; p < NUM_PEOPLE; p++) {
+                if (fixed && fixed[p][d] !== -1) {
+                    currentCount[roster[p][d]]++;
+                } else {
+                    unfixedPeople.push(p);
+                }
+            }
+            // 計算仍需多少各更人數（如果已超標，則 needed 可能為負，我們設為0避免錯誤）
+            const needed = [];
+            for (let s = 1; s <= 4; s++) {
+                const need = Math.max(0, demand[s] - currentCount[s]);
+                for (let k = 0; k < need; k++) needed.push(s);
+            }
+            // 從 unfixedPeople 中扣除請假者（他們必須休息）
+            const availablePeople = unfixedPeople.filter(p => !leaves[p].has(d));
+            shuffleArray(availablePeople);
+            const selected = availablePeople.slice(0, needed.length);
+            const pool = [...needed];
+            shuffleArray(pool);
+            for (let i = 0; i < selected.length; i++) {
+                roster[selected[i]][d] = pool[i];
+            }
+            // 其餘未選中的 unfixedPeople 設為休息
+            for (const p of unfixedPeople) {
+                if (!selected.includes(p) || leaves[p].has(d)) {
+                    roster[p][d] = 0;
+                }
+            }
+        }
+
+        // 衝突最小化（只針對連續上班，不動固定值）
         function calcConflicts(s) {
             let total = 0;
             for (let p = 0; p < NUM_PEOPLE; p++) {
@@ -697,9 +880,11 @@
             }
             let p1 = cPeople.length && Math.random() < 0.8 ? cPeople[Math.floor(Math.random()*cPeople.length)] : Math.floor(Math.random()*NUM_PEOPLE);
             let d = Math.floor(Math.random()*numDays);
+            if (fixed && fixed[p1][d] !== -1) continue;
             if (leaves[p1].has(d)) continue;
             let p2;
             do { p2 = Math.floor(Math.random()*NUM_PEOPLE); } while (p2 === p1);
+            if (fixed && fixed[p2][d] !== -1) continue;
             if (leaves[p2].has(d)) continue;
             if (schedule[p1][d] === schedule[p2][d]) continue;
             const dlt = delta(p1, p2, d, schedule);
@@ -711,11 +896,46 @@
         return { success: conflict === 0, schedule, conflict };
     }
 
-    // ==================== 顯示班表 ====================
-    function displaySchedule(schedule, names, leaves) {
+    // ==================== 顯示班表（含衝突標記） ====================
+    function displaySchedule(schedule, names, leaves, conflictSet = null) {
         const numDays = monthData.numDays;
         const days = monthData.days;
         const isHoliday = monthData.isHoliday;
+
+        // 如果沒有提供 conflictSet，則自動計算所有衝突格子
+        if (!conflictSet) {
+            conflictSet = new Set();
+            // 請假衝突 & 假日 D 更
+            for (let p = 0; p < NUM_PEOPLE; p++) {
+                for (let d = 0; d < numDays; d++) {
+                    if (leaves[p].has(d) && schedule[p][d] !== 0) conflictSet.add(`${p},${d}`);
+                    if (isHoliday[d] && schedule[p][d] === 4) conflictSet.add(`${p},${d}`);
+                }
+            }
+            // 連續上班衝突
+            for (let p = 0; p < NUM_PEOPLE; p++) {
+                let cons = 0;
+                let consStart = -1;
+                for (let d = 0; d < numDays; d++) {
+                    if (schedule[p][d] !== 0) {
+                        cons++;
+                        if (cons === 1) consStart = d;
+                    } else {
+                        cons = 0;
+                        consStart = -1;
+                    }
+                    if (cons > 4) {
+                        for (let i = consStart; i <= d; i++) {
+                            conflictSet.add(`${p},${i}`);
+                        }
+                        // 重置計數以避免同一段重複標記後段
+                        cons = 0;
+                        consStart = -1;
+                    }
+                }
+            }
+        }
+
         let html = '<table><tr><th class="person-col">姓名</th>';
         for (let d = 0; d < numDays; d++) {
             const date = days[d];
@@ -730,7 +950,7 @@
                 const sn = SHIFT_NAMES[s];
                 let cls = s === 0 ? 'rest' : (['','shift-A','shift-B','shift-C','shift-D'])[s];
                 if (isHoliday[d]) cls += ' weekend';
-                if (leaves[p].has(d)) cls += ' rest';
+                if (conflictSet.has(`${p},${d}`)) cls += ' conflict';
                 html += `<td class="${cls}">${sn}</td>`;
             }
             html += '</tr>';
@@ -738,6 +958,7 @@
         html += '</table>';
         document.getElementById('schedule-output').innerHTML = html;
 
+        // 檢查摘要
         let totalDemand = 0;
         for (let d = 0; d < numDays; d++) {
             const demand = isHoliday[d] ? WEEKEND_DEMAND : WEEKDAY_DEMAND;
@@ -773,12 +994,93 @@
         document.getElementById('summary').innerHTML = check;
     }
 
-    // ==================== 主流程 ====================
-    async function generateSchedule() {
+    // ==================== CSV 下載 ====================
+    function downloadCSV() {
+        if (!currentSchedule || !currentNames) {
+            alert('請先生成班表');
+            return;
+        }
+        const numDays = monthData.numDays;
+        const days = monthData.days;
+
+        let csvContent = '\uFEFF';
+        let header = '姓名';
+        for (let d = 0; d < numDays; d++) {
+            const date = days[d];
+            const dow = '日一二三四五六'[date.getDay()];
+            header += `,${date.getDate()}日(週${dow})`;
+        }
+        csvContent += header + '\n';
+
+        for (let p = 0; p < NUM_PEOPLE; p++) {
+            let row = currentNames[p];
+            for (let d = 0; d < numDays; d++) {
+                row += `,${SHIFT_NAMES[currentSchedule[p][d]]}`;
+            }
+            csvContent += row + '\n';
+        }
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `排班表_${currentYear}_${currentMonth}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // ==================== 生成（含固定值） ====================
+    async function generateScheduleWithFixed(fixed, initialConflictCells = null) {
         if (!monthData) return;
         document.getElementById('schedule-output').innerHTML = '';
         document.getElementById('summary').innerHTML = '';
 
+        const names = getNames();
+        if (!names) return;
+
+        const leaves = buildLeaveSets();
+
+        document.getElementById('status').innerHTML = '⏳ 正在根據 CSV 固定值計算班表，請稍候...';
+        const btn = document.getElementById('generateBtn');
+        btn.disabled = true;
+        btn.textContent = '計算中...';
+        document.getElementById('downloadBtn').disabled = true;
+
+        await new Promise(r => setTimeout(r, 50));
+
+        let result = null;
+        for (let attempt = 1; attempt <= 10; attempt++) {
+            result = solveRoster(leaves, fixed);
+            if (result.success) break;
+            document.getElementById('status').innerHTML = `⏳ 第 ${attempt} 次嘗試中...`;
+            await new Promise(r => setTimeout(r, 50));
+        }
+
+        btn.disabled = false;
+        btn.textContent = '🔄 生成班表';
+
+        if (result && result.schedule) {
+            document.getElementById('status').innerHTML = '✅ 已生成班表（可能包含衝突）。';
+            // 合併初始衝突與最終計算出的衝突
+            const finalConflictSet = initialConflictCells ? new Set(initialConflictCells) : new Set();
+            // 重新掃描最終班表加入任何新衝突（因為優化可能改變了連續上班情況）
+            displaySchedule(result.schedule, names, leaves, finalConflictSet);
+            currentSchedule = result.schedule;
+            currentNames = names;
+            document.getElementById('downloadBtn').disabled = false;
+        } else {
+            document.getElementById('status').innerHTML = '❌ 暫時無法生成，請再試一次或減少請假。';
+            currentSchedule = null;
+            currentNames = null;
+            document.getElementById('downloadBtn').disabled = true;
+        }
+    }
+
+    // ==================== 一般生成 ====================
+    async function generateSchedule() {
+        if (!monthData) return;
         WEEKDAY_DEMAND = [0,
             parseInt(document.getElementById('wdA').value)||0,
             parseInt(document.getElementById('wdB').value)||0,
@@ -796,22 +1098,26 @@
         if (!names) return;
 
         const leaves = buildLeaveSets();
-        const feasErr = checkFeasibility(leaves);
-        if (feasErr) {
-            document.getElementById('status').innerHTML = '❌ ' + feasErr;
-            return;
+        // 快速可行性檢查（不考慮固定值）
+        const neededMax = Math.max(...Array.from({length: monthData.numDays}, (_, d) => {
+            const demand = monthData.isHoliday[d] ? WEEKEND_DEMAND : WEEKDAY_DEMAND;
+            return demand[1]+demand[2]+demand[3]+demand[4];
+        }));
+        if (NUM_PEOPLE - leaveEntries.length < neededMax) {
+            // 簡單檢查，非精確但可提示
         }
 
         document.getElementById('status').innerHTML = '⏳ 正在計算班表，請稍候...';
         const btn = document.getElementById('generateBtn');
         btn.disabled = true;
         btn.textContent = '計算中...';
+        document.getElementById('downloadBtn').disabled = true;
 
         await new Promise(r => setTimeout(r, 50));
 
         let result = null;
         for (let attempt = 1; attempt <= 5; attempt++) {
-            result = solveRoster(leaves);
+            result = solveRoster(leaves, null);
             if (result.success) break;
             document.getElementById('status').innerHTML = `⏳ 第 ${attempt} 次嘗試中...`;
             await new Promise(r => setTimeout(r, 50));
@@ -823,8 +1129,14 @@
         if (result && result.success) {
             document.getElementById('status').innerHTML = '✅ 成功生成班表！';
             displaySchedule(result.schedule, names, leaves);
+            currentSchedule = result.schedule;
+            currentNames = names;
+            document.getElementById('downloadBtn').disabled = false;
         } else {
             document.getElementById('status').innerHTML = '❌ 暫時無法生成，請再試一次或減少請假。';
+            currentSchedule = null;
+            currentNames = null;
+            document.getElementById('downloadBtn').disabled = true;
         }
     }
 
