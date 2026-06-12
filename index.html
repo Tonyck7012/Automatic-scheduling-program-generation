@@ -64,7 +64,7 @@
             </div>
         </div>
         <button onclick="updateDemand()" style="margin-top:12px;">🔄 更新需求</button>
-        <small>N更人數由下方「N更輪班規則」中的「每日人數選項」統一控制。</small>
+        <small>N更人數由下方「N更輪班規則」中的「每日人數選項選項」統一控制。</small>
     </div>
 
     <div class="card">
@@ -82,6 +82,7 @@
     <div class="card">
         <div class="row">
             <div style="flex:1;"><label>📏 每人最多連續上班天數（硬約束）</label><input type="number" id="maxConsecutiveDays" value="4" min="1"></div>
+            <div style="flex:1;"><label>🏖️ 每人最多連續休息天數（硬約束）</label><input type="number" id="maxConsecutiveRestDays" value="3" min="1"></div>
             <div style="flex:1;"><label>📊 每人每月最多休息天數（硬約束）</label><input type="number" id="maxRestDays" value="10" min="0"></div>
         </div>
     </div>
@@ -125,11 +126,10 @@
     let WEEKEND_MIN = [0,5,3,4,0,0]; let WEEKEND_MAX = [0,6,4,5,2,0];
     let NUM_PEOPLE = 39;
     
-    // 【修改核心】：自動獲取「下一個月」作為預設排班年月
     const targetDate = new Date();
-    targetDate.setMonth(targetDate.getMonth() + 1); // 往前推一個月
+    targetDate.setMonth(targetDate.getMonth() + 1); 
     let currentYear = targetDate.getFullYear();
-    let currentMonth = targetDate.getMonth() + 1; // JavaScript 月份為 0~11，故需 +1
+    let currentMonth = targetDate.getMonth() + 1; 
 
     let monthData = null, leaveEntries = [];
     let currentSchedule = null, currentNames = null;
@@ -470,7 +470,7 @@
 
     function shuffleArray(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } }
 
-    function solveRoster(leaves, fixed, nMatrix, forcedRest, maxConsecutiveDays) {
+    function solveRoster(leaves, fixed, nMatrix, forcedRest, maxConsecutiveDays, maxConsecutiveRestDays) {
         const numDays = monthData.numDays, isHoliday = monthData.isHoliday;
         let roster = Array.from({length:NUM_PEOPLE}, () => new Array(numDays).fill(0));
         if (fixed) for (let p=0; p<NUM_PEOPLE; p++) for (let d=0; d<numDays; d++) if (fixed[p][d]!==-1) roster[p][d] = fixed[p][d];
@@ -504,17 +504,26 @@
 
         const maxRest = parseInt(document.getElementById('maxRestDays').value)||10;
         function calcConflicts(sched) {
-            let total = 0, restViolations = 0, consViolations = 0;
+            let total = 0, restViolations = 0, consViolations = 0, consRestViolations = 0;
             for (let p=0; p<NUM_PEOPLE; p++) {
                 let cons = 0;
+                let consRest = 0;
                 for (let d=0; d<numDays; d++) {
-                    if (sched[p][d] !== 0) { cons++; if (cons > maxConsecutiveDays) { total += (cons - maxConsecutiveDays) * 50; consViolations++; } }
-                    else cons = 0;
+                    if (sched[p][d] !== 0) { 
+                        cons++; 
+                        if (cons > maxConsecutiveDays) { total += (cons - maxConsecutiveDays) * 50; consViolations++; } 
+                        consRest = 0; 
+                    }
+                    else { 
+                        cons = 0; 
+                        consRest++; 
+                        if (consRest > maxConsecutiveRestDays) { total += (consRest - maxConsecutiveRestDays) * 50; consRestViolations++; } 
+                    }
                 }
                 const restDays = sched[p].filter(v => v===0).length;
                 if (restDays > maxRest) { const excess = restDays - maxRest; total += excess * 100; restViolations += excess; }
             }
-            return { total, restViolations, consViolations };
+            return { total, restViolations, consViolations, consRestViolations };
         }
         function delta(p1,p2,d,sched) {
             const o1 = sched[p1][d], o2 = sched[p2][d]; if (o1 === o2) return 0;
@@ -541,16 +550,20 @@
             if (dlt <= 0 || Math.random() < 0.01) { [schedule[p1][d], schedule[p2][d]] = [schedule[p2][d], schedule[p1][d]]; conflict += dlt; }
         }
         const finalInfo = calcConflicts(schedule);
-        const success = finalInfo.consViolations === 0 && finalInfo.restViolations === 0;
-        return { success, schedule, conflict: finalInfo.total, consViolations: finalInfo.consViolations, restViolations: finalInfo.restViolations };
+        const success = finalInfo.consViolations === 0 && finalInfo.restViolations === 0 && finalInfo.consRestViolations === 0;
+        return { success, schedule, conflict: finalInfo.total, consViolations: finalInfo.consViolations, restViolations: finalInfo.restViolations, consRestViolations: finalInfo.consRestViolations };
     }
 
-    function displaySchedule(schedule, names, leaves, conflictSet=null, maxConsecutiveDays=4) { 
+    function displaySchedule(schedule, names, leaves, conflictSet=null, maxConsecutiveDays=4, maxConsecutiveRestDays=3) { 
         const numDays = monthData.numDays, days = monthData.days, isHoliday = monthData.isHoliday;
         const maxRest = parseInt(document.getElementById('maxRestDays').value)||10;
         if (!conflictSet) { conflictSet = new Set();
             for (let p=0; p<NUM_PEOPLE; p++) for (let d=0; d<numDays; d++) if (leaves[p].has(d) && schedule[p][d]!==0) conflictSet.add(`${p},${d}`);
-            for (let p=0; p<NUM_PEOPLE; p++) { let c=0, cs=-1; for (let d=0; d<numDays; d++) { if (schedule[p][d]!==0) { c++; if(c===1) cs=d; } else { c=0; cs=-1; } if (c > maxConsecutiveDays) { for(let i=cs; i<=d; i++) conflictSet.add(`${p},${i}`); c=0; cs=-1; } } if (schedule[p].filter(v=>v===0).length > maxRest) for (let d=0; d<numDays; d++) if (schedule[p][d]===0) conflictSet.add(`${p},${d}`); }
+            for (let p=0; p<NUM_PEOPLE; p++) { 
+                let c=0, cs=-1; for (let d=0; d<numDays; d++) { if (schedule[p][d]!==0) { c++; if(c===1) cs=d; } else { c=0; cs=-1; } if (c > maxConsecutiveDays) { for(let i=cs; i<=d; i++) conflictSet.add(`${p},${i}`); c=0; cs=-1; } } 
+                let cr=0, crs=-1; for (let d=0; d<numDays; d++) { if (schedule[p][d]===0) { cr++; if(cr===1) crs=d; } else { cr=0; crs=-1; } if (cr > maxConsecutiveRestDays) { for(let i=crs; i<=d; i++) conflictSet.add(`${p},${i}`); cr=0; crs=-1; } }
+                if (schedule[p].filter(v=>v===0).length > maxRest) for (let d=0; d<numDays; d++) if (schedule[p][d]===0) conflictSet.add(`${p},${d}`); 
+            }
             for (let d=0; d<numDays; d++) { 
                 const dMin=isHoliday[d]?WEEKEND_MIN:WEEKDAY_MIN, dMax=isHoliday[d]?WEEKEND_MAX:WEEKDAY_MAX; 
                 const cnt=[0,0,0,0,0,0]; 
@@ -579,6 +592,7 @@
     async function generateSchedule() {
         if(!monthData) return; updateDemand();
         const maxConsecutiveDays = parseInt(document.getElementById('maxConsecutiveDays').value) || 4;
+        const maxConsecutiveRestDays = parseInt(document.getElementById('maxConsecutiveRestDays').value) || 3;
         const names = getNames(); if(!names) return;
         const leaves = buildLeaveSets();
         const fixed = buildFixedFromConstraints();
@@ -589,10 +603,10 @@
         const btn = document.getElementById('generateBtn'); btn.disabled = true; btn.textContent = '計算中...';
         await new Promise(r=>setTimeout(r,50));
         let result = null;
-        for(let i=1; i<=5; i++) { result = solveRoster(leaves, fixed, nMatrix, forcedRest, maxConsecutiveDays); if(result.success) break; await new Promise(r=>setTimeout(r,50)); }
+        for(let i=1; i<=5; i++) { result = solveRoster(leaves, fixed, nMatrix, forcedRest, maxConsecutiveDays, maxConsecutiveRestDays); if(result.success) break; await new Promise(r=>setTimeout(r,50)); }
         btn.disabled = false; btn.textContent = '🔄 生成班表（自動融合手動N更）';
-        if(result && result.success) { document.getElementById('status').innerHTML = '✅ 生成成功！手動N更與員工休息上限均已完美滿足。'; displaySchedule(result.schedule, names, leaves, null, maxConsecutiveDays); currentSchedule = result.schedule; currentNames = names; document.getElementById('downloadBtn').disabled = false; } 
-        else { document.getElementById('status').innerHTML = '❌ 無法滿足全部硬約束（如連續上班或每月最多休息天數超標），請嘗試放寬限制或調整手動條件。'; }
+        if(result && result.success) { document.getElementById('status').innerHTML = '✅ 生成成功！手動N更與員工休息上限均已完美滿足。'; displaySchedule(result.schedule, names, leaves, null, maxConsecutiveDays, maxConsecutiveRestDays); currentSchedule = result.schedule; currentNames = names; document.getElementById('downloadBtn').disabled = false; } 
+        else { document.getElementById('status').innerHTML = '❌ 無法滿足全部硬約束（如連續上班、連續休息或每月最多休息天數超標），請嘗試放寬限制或調整手動條件。'; }
     }
 
     window.onload = function() { NUM_PEOPLE = parseInt(document.getElementById('totalPeople').value); updateDemand(); initYearMonthSelectors(); initDefaultNames(); generateSchedule(); };
