@@ -82,7 +82,7 @@
     <div class="card">
         <div class="row">
             <div style="flex:1;"><label>📏 每人最多連續上班天數（硬約束）</label><input type="number" id="maxConsecutiveDays" value="4" min="1"></div>
-            <div style="flex:1;"><label>📊 每人每月最多休息天數（軟約束）</label><input type="number" id="maxRestDays" value="10" min="0"></div>
+            <div style="flex:1;"><label>📊 每人每月最多休息天數（硬約束）</label><input type="number" id="maxRestDays" value="10" min="0"></div>
         </div>
     </div>
 
@@ -123,7 +123,15 @@
 
     let WEEKDAY_MIN = [0,6,6,6,5,0]; let WEEKDAY_MAX = [0,7,7,7,6,0];
     let WEEKEND_MIN = [0,5,3,4,0,0]; let WEEKEND_MAX = [0,6,4,5,2,0];
-    let NUM_PEOPLE = 39, currentYear = 2026, currentMonth = 6;
+    
+    // --- 【修改部分】自動檢查今天月份，並設定為下一個月 ---
+    let NUM_PEOPLE = 39;
+    const today = new Date();
+    today.setMonth(today.getMonth() + 1); // 將月份推向「下個月」
+    let currentYear = today.getFullYear();
+    let currentMonth = today.getMonth() + 1; // JavaScript 的 getMonth() 為 0~11，故需 +1
+    // --------------------------------------------------
+
     let monthData = null, leaveEntries = [];
     let currentSchedule = null, currentNames = null;
     let constraintMatrix = [];
@@ -302,7 +310,7 @@
             endN--;
             for (let i = start; i <= endN; i++) constraintMatrix[p][i] = null;
             let restStart = endN + 1;
-            let restEnd = Math.min(restStart + rest - 1, numDays - 1);
+            let restEnd = Math.min(restStart + rest, numDays - 1);
             for (let i = restStart; i <= restEnd; i++) {
                 if (constraintMatrix[p][i] === 0) constraintMatrix[p][i] = null;
             }
@@ -337,7 +345,6 @@
         WEEKDAY_MIN[5] = need; WEEKDAY_MAX[5] = need;
         WEEKEND_MIN[5] = need; WEEKEND_MAX[5] = need;
 
-        // 先行統計每日手動設定的 N更人數
         const manualNCount = new Array(numDays).fill(0);
         for (let d = 0; d < numDays; d++) {
             for (let p = 0; p < NUM_PEOPLE; p++) {
@@ -399,7 +406,6 @@
                 if (nMatrix[p][d]) currentTotal++;
             }
 
-            // 修正：手動優先。若手動已達或超過需求，直接跳過該日自動排班
             if (currentTotal >= need) continue;
 
             const needed = need - currentTotal;
@@ -426,7 +432,6 @@
                     for (let pp = 0; pp < NUM_PEOPLE; pp++) {
                         if (nMatrix[pp][fd]) totalOnFd++;
                     }
-                    // 修正：Lookahead 預檢比對上限時納入該日手動超額的可能
                     if (totalOnFd >= Math.max(need, manualNCount[fd])) { can = false; break; }
                 }
 
@@ -493,11 +498,11 @@
             for (let p=0; p<NUM_PEOPLE; p++) {
                 let cons = 0;
                 for (let d=0; d<numDays; d++) {
-                    if (sched[p][d] !== 0) { cons++; if (cons > maxConsecutiveDays) { total += (cons - maxConsecutiveDays) * 20; consViolations++; } }
+                    if (sched[p][d] !== 0) { cons++; if (cons > maxConsecutiveDays) { total += (cons - maxConsecutiveDays) * 50; consViolations++; } }
                     else cons = 0;
                 }
                 const restDays = sched[p].filter(v => v===0).length;
-                if (restDays > maxRest) { const excess = restDays - maxRest; total += excess * 10; restViolations += excess; }
+                if (restDays > maxRest) { const excess = restDays - maxRest; total += excess * 100; restViolations += excess; }
             }
             return { total, restViolations, consViolations };
         }
@@ -526,7 +531,7 @@
             if (dlt <= 0 || Math.random() < 0.01) { [schedule[p1][d], schedule[p2][d]] = [schedule[p2][d], schedule[p1][d]]; conflict += dlt; }
         }
         const finalInfo = calcConflicts(schedule);
-        const success = finalInfo.consViolations === 0;
+        const success = finalInfo.consViolations === 0 && finalInfo.restViolations === 0;
         return { success, schedule, conflict: finalInfo.total, consViolations: finalInfo.consViolations, restViolations: finalInfo.restViolations };
     }
 
@@ -541,7 +546,6 @@
                 const cnt=[0,0,0,0,0,0]; 
                 for(let p=0;p<NUM_PEOPLE;p++) cnt[schedule[p][d]]++; 
                 
-                // 修正：動態檢索並調高 N更的判定上限，避免手動超額被誤判為衝突
                 let dayManualN = 0;
                 for(let pp=0; pp<NUM_PEOPLE; pp++) if(constraintMatrix[pp][d] === 5) dayManualN++;
                 const currentNMin = Math.max(dMin[5], dayManualN);
@@ -577,8 +581,8 @@
         let result = null;
         for(let i=1; i<=5; i++) { result = solveRoster(leaves, fixed, nMatrix, forcedRest, maxConsecutiveDays); if(result.success) break; await new Promise(r=>setTimeout(r,50)); }
         btn.disabled = false; btn.textContent = '🔄 生成班表（自動融合手動N更）';
-        if(result && result.success) { document.getElementById('status').innerHTML = '✅ 生成成功！手動N更已順利滿足每日指定人數。'; displaySchedule(result.schedule, names, leaves, null, maxConsecutiveDays); currentSchedule = result.schedule; currentNames = names; document.getElementById('downloadBtn').disabled = false; } 
-        else { document.getElementById('status').innerHTML = '❌ 無法滿足全部約束，請嘗試放寬參數、增加入手或微調手動條件。'; }
+        if(result && result.success) { document.getElementById('status').innerHTML = '✅ 生成成功！手動N更與員工休息上限均已完美滿足。'; displaySchedule(result.schedule, names, leaves, null, maxConsecutiveDays); currentSchedule = result.schedule; currentNames = names; document.getElementById('downloadBtn').disabled = false; } 
+        else { document.getElementById('status').innerHTML = '❌ 無法滿足全部硬約束（如連續上班或每月最多休息天數超標），請嘗試放寬限制或調整手動條件。'; }
     }
 
     window.onload = function() { NUM_PEOPLE = parseInt(document.getElementById('totalPeople').value); updateDemand(); initYearMonthSelectors(); initDefaultNames(); generateSchedule(); };
