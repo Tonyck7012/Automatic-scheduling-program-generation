@@ -64,7 +64,7 @@
             </div>
         </div>
         <button onclick="updateDemand()" style="margin-top:12px;">🔄 更新需求</button>
-        <small>N更人數由下方「N更輪班規則」中的「每日人數」統一控制。</small>
+        <small>N更人數由下方「N更輪班規則」中的「每日人數選項」統一控制。</small>
     </div>
 
     <div class="card">
@@ -123,14 +123,13 @@
 
     let WEEKDAY_MIN = [0,6,6,6,5,0]; let WEEKDAY_MAX = [0,7,7,7,6,0];
     let WEEKEND_MIN = [0,5,3,4,0,0]; let WEEKEND_MAX = [0,6,4,5,2,0];
-    
-    // --- 【修改部分】自動檢查今天月份，並設定為下一個月 ---
     let NUM_PEOPLE = 39;
-    const today = new Date();
-    today.setMonth(today.getMonth() + 1); // 將月份推向「下個月」
-    let currentYear = today.getFullYear();
-    let currentMonth = today.getMonth() + 1; // JavaScript 的 getMonth() 為 0~11，故需 +1
-    // --------------------------------------------------
+    
+    // 【修改核心】：自動獲取「下一個月」作為預設排班年月
+    const targetDate = new Date();
+    targetDate.setMonth(targetDate.getMonth() + 1); // 往前推一個月
+    let currentYear = targetDate.getFullYear();
+    let currentMonth = targetDate.getMonth() + 1; // JavaScript 月份為 0~11，故需 +1
 
     let monthData = null, leaveEntries = [];
     let currentSchedule = null, currentNames = null;
@@ -166,12 +165,16 @@
 
     function updateMonthData() {
         monthData = getDaysInMonth(currentYear, currentMonth);
-        const first = new Date(currentYear,currentMonth-1,1);
-        const last = new Date(currentYear,currentMonth-1,monthData.numDays);
-        document.getElementById('leaveStart').min = first.toISOString().split('T')[0];
-        document.getElementById('leaveStart').max = last.toISOString().split('T')[0];
-        document.getElementById('leaveEnd').min = first.toISOString().split('T')[0];
-        document.getElementById('leaveEnd').max = last.toISOString().split('T')[0];
+        
+        const formatYMD = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const minStr = formatYMD(currentYear, currentMonth, 1);
+        const maxStr = formatYMD(currentYear, currentMonth, monthData.numDays);
+        
+        document.getElementById('leaveStart').min = minStr;
+        document.getElementById('leaveStart').max = maxStr;
+        document.getElementById('leaveEnd').min = minStr;
+        document.getElementById('leaveEnd').max = maxStr;
+        
         leaveEntries = leaveEntries.map(e => ({...e, ...clipLeave(e.rawStart, e.rawEnd)})).filter(e => e.startDay!==null);
         renderLeaveList();
         initConstraintMatrix();
@@ -200,16 +203,23 @@
     function initYearMonthSelectors() {
         const ys = document.getElementById('yearSelect'), ms = document.getElementById('monthSelect');
         ys.innerHTML=''; ms.innerHTML='';
-        for(let y=2020; y<=2030; y++) ys.add(new Option(y+'年', y, y===currentYear));
-        for(let m=1; m<=12; m++) ms.add(new Option(m+'月', m, m===currentMonth));
+        for(let y=2020; y<=2035; y++) ys.add(new Option(y+'年', y));
+        for(let m=1; m<=12; m++) ms.add(new Option(m+'月', m));
+        
+        ys.value = currentYear;
+        ms.value = currentMonth;
+        
         updateMonthData();
     }
 
-    function changeMonth() {
+    async function changeMonth() {
         currentYear = +document.getElementById('yearSelect').value;
         currentMonth = +document.getElementById('monthSelect').value;
         updateMonthData();
-        document.getElementById('status').innerHTML = `已切換至 ${currentYear}年${currentMonth}月，請重新生成班表。`;
+        
+        document.getElementById('status').innerHTML = `⏳ 已切換至 ${currentYear}年${currentMonth}月，正在自動重新生成班表...`;
+        await new Promise(r=>setTimeout(r,50));
+        generateSchedule();
     }
 
     function updateNameCount() {
@@ -440,7 +450,7 @@
 
             if (available.length < needed) {
                 const date = monthData.days[d].getDate();
-                document.getElementById('status').innerHTML = `❌ 第 ${date} 日 N更人手調度困難（可用 ${available.length} 人，尚需 ${needed} 人）。請減少該日前後的手動限制。`;
+                document.getElementById('status').innerHTML = `❌ 員工於第 ${date} 日 N更人手調度困難（可用 ${available.length} 人，尚需 ${needed} 人）。請減少該日前後的手動限制。`;
                 return null;
             }
 
