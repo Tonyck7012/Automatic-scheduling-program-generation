@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>排班表 - 衝突標記版</title>
+    <title>排班表 - 條件表版</title>
     <style>
         :root {
             --bg: #f0f4f8;
@@ -26,8 +26,7 @@
             padding: 16px;
             min-height: 100vh;
         }
-        .container { max-width: 680px; margin: 0 auto; }
-
+        .container { max-width: 720px; margin: 0 auto; }
         h1 {
             text-align: center;
             font-size: 1.8em;
@@ -38,13 +37,7 @@
             background-clip: text;
             margin-bottom: 8px;
         }
-        .subtitle {
-            text-align: center;
-            color: var(--text-light);
-            margin-bottom: 24px;
-            font-size: 0.95em;
-        }
-
+        .subtitle { text-align: center; color: var(--text-light); margin-bottom: 24px; font-size: 0.95em; }
         .card {
             background: var(--card-bg);
             border-radius: var(--radius);
@@ -55,22 +48,9 @@
             transition: box-shadow var(--transition);
         }
         .card:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08); }
-
-        label {
-            font-weight: 600;
-            display: block;
-            margin-bottom: 8px;
-            color: var(--text);
-            font-size: 0.95em;
-        }
-        .row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-        }
+        label { font-weight: 600; display: block; margin-bottom: 8px; color: var(--text); font-size: 0.95em; }
+        .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
         .row > * { flex: 1 1 80px; }
-
         input, select, textarea {
             font-family: inherit;
             font-size: 0.9em;
@@ -86,7 +66,6 @@
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
         }
-
         button {
             font-family: inherit;
             font-weight: 600;
@@ -102,207 +81,88 @@
         }
         button:hover { background: var(--primary-hover); }
         button:active { transform: scale(0.97); }
-        button:disabled {
-            background: #94a3b8;
-            cursor: not-allowed;
-            transform: none;
-        }
+        button:disabled { background: #94a3b8; cursor: not-allowed; transform: none; }
         .btn-danger { background: var(--danger); }
         .btn-danger:hover { background: #dc2626; }
         .btn-success { background: #16a34a; }
         .btn-success:hover { background: #15803d; }
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--primary);
-            color: var(--primary);
-        }
+        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
         .btn-outline:hover { background: #eff6ff; }
-
-        /* 需求垂直佈局 */
-        .demand-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
+        .demand-row { display: flex; flex-wrap: wrap; gap: 16px; }
         .demand-group {
-            flex: 1 1 200px;
+            flex: 1 1 220px;
             background: #f8fafc;
             border-radius: 12px;
             padding: 14px;
             border: 1px solid var(--border);
         }
-        .demand-group h4 {
-            margin: 0 0 10px 0;
-            font-size: 1em;
-            text-align: center;
-            color: var(--text);
-        }
-        .demand-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            gap: 8px;
-        }
-        .demand-item span:first-child {
-            font-weight: 500;
-            min-width: 36px;
-        }
-        .demand-item input {
-            width: 70px;
-            text-align: center;
-            padding: 8px;
-            border-radius: 8px;
-            background: white;
-            border: 1px solid var(--border);
-        }
-        .demand-item.total span:last-child {
-            font-weight: 600;
-            background: #e2e8f0;
-            padding: 2px 10px;
-            border-radius: 20px;
-            min-width: 32px;
-            text-align: center;
-            display: inline-block;
-        }
-
-        .error-message {
-            background: #fee2e2;
-            color: #b91c1c;
-            padding: 12px;
-            border-radius: 10px;
-            margin: 15px 0;
-            display: none;
-            font-weight: 500;
-        }
-
-        .leave-list {
-            margin-top: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .leave-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #f8fafc;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 8px 12px;
-        }
+        .demand-group h4 { margin: 0 0 10px 0; font-size: 1em; text-align: center; color: var(--text); }
+        .demand-item { display: flex; align-items: center; justify-content: flex-start; margin-bottom: 8px; gap: 6px; flex-wrap: wrap; }
+        .demand-item span:first-child { font-weight: 500; min-width: 36px; }
+        .demand-item input { width: 58px; text-align: center; padding: 6px 4px; border-radius: 8px; background: white; border: 1px solid var(--border); font-size: 0.85em; }
+        .demand-item .range-sep { color: var(--text-light); font-weight: 400; }
+        .demand-item.total { justify-content: space-between; }
+        .demand-item.total span:last-child { font-weight: 600; background: #e2e8f0; padding: 2px 10px; border-radius: 20px; min-width: 32px; text-align: center; display: inline-block; }
+        .error-message { background: #fee2e2; color: #b91c1c; padding: 12px; border-radius: 10px; margin: 15px 0; display: none; font-weight: 500; }
+        .leave-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+        .leave-item { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; }
         .leave-item span { font-size: 0.85em; }
-        .leave-item button {
-            padding: 4px 10px;
-            font-size: 0.8em;
-            border-radius: 6px;
-        }
-
-        .status {
-            text-align: center;
-            margin: 15px 0;
-            font-weight: 500;
-            font-size: 1em;
-            color: var(--text);
-            background: #f1f5f9;
-            padding: 10px;
-            border-radius: 10px;
-        }
-
-        .table-container {
-            overflow-x: auto;
-            margin: 20px 0;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            -webkit-overflow-scrolling: touch;
-        }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            min-width: 1500px;
-            font-size: 0.8em;
-            white-space: nowrap;
-        }
-        th, td {
-            border: 1px solid #e2e8f0;
-            padding: 6px 3px;
-            text-align: center;
-        }
-        th {
-            background: #f1f5f9;
-            font-weight: 600;
-            position: sticky;
-            top: 0;
-            z-index: 2;
-        }
-        .person-col {
-            background: #f8fafc;
-            font-weight: 700;
-            min-width: 70px;
-            position: sticky;
-            left: 0;
-            z-index: 1;
-        }
+        .leave-item button { padding: 4px 10px; font-size: 0.8em; border-radius: 6px; }
+        .status { text-align: center; margin: 15px 0; font-weight: 500; font-size: 1em; color: var(--text); background: #f1f5f9; padding: 10px; border-radius: 10px; }
+        .table-container { overflow-x: auto; margin: 20px 0; border-radius: 12px; box-shadow: var(--shadow); -webkit-overflow-scrolling: touch; }
+        table { border-collapse: collapse; width: 100%; min-width: 1500px; font-size: 0.8em; white-space: nowrap; }
+        th, td { border: 1px solid #e2e8f0; padding: 6px 3px; text-align: center; }
+        th { background: #f1f5f9; font-weight: 600; position: sticky; top: 0; z-index: 2; }
+        .person-col { background: #f8fafc; font-weight: 700; min-width: 70px; position: sticky; left: 0; z-index: 1; }
         .weekend { background-color: #fce4e4; }
         .rest { color: #94a3b8; font-weight: 400; }
         .shift-A { background: #d1fae5; color: #065f46; }
         .shift-B { background: #dbeafe; color: #1e3a8a; }
         .shift-C { background: #fef3c7; color: #92400e; }
         .shift-D { background: #ede9fe; color: #5b21b6; }
-        /* 衝突紅色背景 */
         .conflict { background: #ffcccc !important; color: #b91c1c !important; font-weight: bold; }
-
-        .summary {
-            background: var(--card-bg);
-            border-radius: var(--radius);
-            padding: 20px;
-            box-shadow: var(--shadow);
-            margin-top: 20px;
-            border: 1px solid var(--border);
-        }
+        .summary { background: var(--card-bg); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-top: 20px; border: 1px solid var(--border); }
         .summary h2 { font-size: 1.1em; margin-bottom: 12px; }
         .check-ok { color: #16a34a; font-weight: 600; }
         .check-fail { color: #dc2626; font-weight: 600; }
-
         small { display: block; color: var(--text-light); margin-top: 4px; font-size: 0.8em; }
-
+        .constraint-cell { cursor: pointer; user-select: none; }
+        .constraint-cell:hover { filter: brightness(0.95); }
         @media (max-width: 500px) {
             .row { flex-direction: column; align-items: stretch; }
             .row > * { flex: auto; }
+            .demand-item input { width: 50px; }
         }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>📅 排班表</h1>
-    <p class="subtitle">自訂需求 · 自由請假 · CSV 上載（衝突標紅）</p>
+    <p class="subtitle">自訂最少/最多人數 · 自由請假 · 條件表點擊設定</p>
 
-    <!-- 需求設定卡片 -->
     <div class="card">
-        <label>⚙️ 每更最少上班人數</label>
+        <label>⚙️ 每更上班人數範圍（最少 ~ 最多）</label>
         <div class="demand-row">
             <div class="demand-group">
                 <h4>📅 平日</h4>
-                <div class="demand-item"><span>A更</span><input type="number" id="wdA" value="6" min="0"></div>
-                <div class="demand-item"><span>B更</span><input type="number" id="wdB" value="6" min="0"></div>
-                <div class="demand-item"><span>C更</span><input type="number" id="wdC" value="6" min="0"></div>
-                <div class="demand-item"><span>D更</span><input type="number" id="wdD" value="5" min="0"></div>
-                <div class="demand-item total"><span>合計</span><span id="wdTotal">23</span></div>
+                <div class="demand-item"><span>A更</span><input type="number" id="wdAMin" value="6" min="0"><span class="range-sep">~</span><input type="number" id="wdAMax" value="7" min="0"></div>
+                <div class="demand-item"><span>B更</span><input type="number" id="wdBMin" value="6" min="0"><span class="range-sep">~</span><input type="number" id="wdBMax" value="7" min="0"></div>
+                <div class="demand-item"><span>C更</span><input type="number" id="wdCMin" value="6" min="0"><span class="range-sep">~</span><input type="number" id="wdCMax" value="7" min="0"></div>
+                <div class="demand-item"><span>D更</span><input type="number" id="wdDMin" value="5" min="0"><span class="range-sep">~</span><input type="number" id="wdDMax" value="6" min="0"></div>
+                <div class="demand-item total"><span>合計</span><span id="wdTotal">23 ~ 27</span></div>
             </div>
             <div class="demand-group">
                 <h4>🏖️ 假日</h4>
-                <div class="demand-item"><span>A更</span><input type="number" id="weA" value="5" min="0"></div>
-                <div class="demand-item"><span>B更</span><input type="number" id="weB" value="3" min="0"></div>
-                <div class="demand-item"><span>C更</span><input type="number" id="weC" value="4" min="0"></div>
-                <div class="demand-item"><span>D更</span><input type="number" id="weD" value="0" min="0"></div>
-                <div class="demand-item total"><span>合計</span><span id="weTotal">12</span></div>
+                <div class="demand-item"><span>A更</span><input type="number" id="weAMin" value="5" min="0"><span class="range-sep">~</span><input type="number" id="weAMax" value="6" min="0"></div>
+                <div class="demand-item"><span>B更</span><input type="number" id="weBMin" value="3" min="0"><span class="range-sep">~</span><input type="number" id="weBMax" value="4" min="0"></div>
+                <div class="demand-item"><span>C更</span><input type="number" id="weCMin" value="4" min="0"><span class="range-sep">~</span><input type="number" id="weCMax" value="5" min="0"></div>
+                <div class="demand-item"><span>D更</span><input type="number" id="weDMin" value="0" min="0"><span class="range-sep">~</span><input type="number" id="weDMax" value="2" min="0"></div>
+                <div class="demand-item total"><span>合計</span><span id="weTotal">12 ~ 17</span></div>
             </div>
         </div>
         <button onclick="updateDemand()" style="margin-top:12px;">🔄 更新需求</button>
-        <small>變更後系統會檢查總人數是否足夠</small>
     </div>
 
-    <!-- 總人數 + 年月 -->
     <div class="card">
         <div class="row">
             <div style="flex:1;">
@@ -323,14 +183,12 @@
 
     <div id="errorBox" class="error-message"></div>
 
-    <!-- 姓名卡片 -->
     <div class="card">
         <label for="nameInput">👤 員工姓名（一行一個）</label>
         <textarea id="nameInput" rows="8" placeholder="一人一行，預設會自動填滿"></textarea>
         <small>目前人數：<span id="nameCount">39</span>（需與總人數一致）</small>
     </div>
 
-    <!-- 請假卡片 -->
     <div class="card">
         <label>📌 設定員工請假</label>
         <div class="row">
@@ -340,10 +198,15 @@
             <button onclick="addLeave()">➕ 新增</button>
         </div>
         <div id="leaveList" class="leave-list"></div>
-        <small>切換月份時，已設定嘅請假會自動重新計算有效範圍</small>
     </div>
 
-    <!-- 按鈕組 -->
+    <div class="card">
+        <label>📋 條件表（點擊格子切換：無限制 → 休 → A → B → C → D）</label>
+        <button onclick="clearConstraints()" class="btn-outline" style="margin-bottom:10px;">🗑️ 清除所有條件</button>
+        <div id="constraint-table" class="table-container"></div>
+        <small>設定後，「生成班表」會強制遵守這些條件（紅色格子代表衝突）</small>
+    </div>
+
     <div style="text-align: center; margin: 20px 0; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
         <button id="generateBtn" onclick="generateSchedule()" style="font-size:1.1em; padding:12px 24px;">🔄 生成班表</button>
         <button id="downloadBtn" onclick="downloadCSV()" class="btn-success" style="font-size:1.1em; padding:12px 24px;" disabled>⬇️ 下載 CSV</button>
@@ -352,15 +215,16 @@
     </div>
 
     <div id="status" class="status"></div>
-
     <div id="schedule-output" class="table-container"></div>
     <div id="summary" class="summary"></div>
 </div>
 
 <script>
-    // ==================== 動態需求變數 ====================
-    let WEEKDAY_DEMAND = [0, 6, 6, 6, 5];
-    let WEEKEND_DEMAND = [0, 5, 3, 4, 0];
+    // 全域變數
+    let WEEKDAY_MIN = [0, 6, 6, 6, 5];
+    let WEEKDAY_MAX = [0, 7, 7, 7, 6];
+    let WEEKEND_MIN = [0, 5, 3, 4, 0];
+    let WEEKEND_MAX = [0, 6, 4, 5, 2];
     const SHIFT_NAMES = ['休', 'A', 'B', 'C', 'D'];
     const SHIFT_MAP = { '休': 0, 'A': 1, 'B': 2, 'C': 3, 'D': 4 };
 
@@ -369,59 +233,132 @@
     let currentMonth = 6;
     let monthData = null;
     let leaveEntries = [];
-
     let currentSchedule = null;
     let currentNames = null;
 
-    // ==================== 需求更新 ====================
-    function updateDemand() {
-        const wdA = parseInt(document.getElementById('wdA').value) || 0;
-        const wdB = parseInt(document.getElementById('wdB').value) || 0;
-        const wdC = parseInt(document.getElementById('wdC').value) || 0;
-        const wdD = parseInt(document.getElementById('wdD').value) || 0;
-        const weA = parseInt(document.getElementById('weA').value) || 0;
-        const weB = parseInt(document.getElementById('weB').value) || 0;
-        const weC = parseInt(document.getElementById('weC').value) || 0;
-        const weD = parseInt(document.getElementById('weD').value) || 0;
+    // 條件表二維陣列 (null代表無限制, 0~4代表強制更別)
+    let constraintMatrix = [];
 
-        WEEKDAY_DEMAND = [0, wdA, wdB, wdC, wdD];
-        WEEKEND_DEMAND = [0, weA, weB, weC, weD];
+    // 初始化條件表
+    function initConstraintMatrix() {
+        constraintMatrix = Array.from({ length: NUM_PEOPLE }, () => new Array(monthData.numDays).fill(null));
+    }
 
-        const wdSum = wdA + wdB + wdC + wdD;
-        const weSum = weA + weB + weC + weD;
-        document.getElementById('wdTotal').textContent = wdSum;
-        document.getElementById('weTotal').textContent = weSum;
-
-        const minRequired = Math.max(wdSum, weSum);
-        document.getElementById('minPeopleHint').textContent = minRequired;
-        document.getElementById('totalPeople').min = minRequired;
-
-        if (NUM_PEOPLE < minRequired) {
-            alert(`總人數不足！目前 ${NUM_PEOPLE} 人，但需求最多的一天需要 ${minRequired} 人上班。\n請調高總人數或降低需求。`);
+    // 渲染條件表
+    function renderConstraintTable() {
+        const container = document.getElementById('constraint-table');
+        if (!monthData) return;
+        const names = getNames() || [];
+        const numDays = monthData.numDays;
+        const days = monthData.days;
+        let html = '<table><tr><th class="person-col">姓名</th>';
+        for (let d = 0; d < numDays; d++) {
+            const date = days[d];
+            const dow = '日一二三四五六'[date.getDay()];
+            html += `<th class="${monthData.isHoliday[d] ? 'weekend' : ''}">${date.getDate()}<br>週${dow}</th>`;
         }
+        html += '</tr>';
+        for (let p = 0; p < NUM_PEOPLE; p++) {
+            html += `<tr><td class="person-col">${names[p] || `P${p+1}`}</td>`;
+            for (let d = 0; d < numDays; d++) {
+                const val = constraintMatrix[p]?.[d];
+                const text = val === null ? '' : SHIFT_NAMES[val];
+                const cls = val === null ? '' : (val === 0 ? 'rest' : `shift-${SHIFT_NAMES[val]}`);
+                html += `<td class="constraint-cell ${cls} ${monthData.isHoliday[d] ? 'weekend' : ''}" 
+                            onclick="cycleConstraint(${p},${d})" 
+                            data-p="${p}" data-d="${d}">${text}</td>`;
+            }
+            html += '</tr>';
+        }
+        html += '</table>';
+        container.innerHTML = html;
+    }
+
+    // 點擊切換：null -> 0 -> 1 -> 2 -> 3 -> 4 -> null
+    function cycleConstraint(p, d) {
+        const current = constraintMatrix[p][d];
+        if (current === null) constraintMatrix[p][d] = 0;
+        else if (current === 4) constraintMatrix[p][d] = null;
+        else constraintMatrix[p][d] = current + 1;
+        // 更新單元格
+        const cell = document.querySelector(`.constraint-cell[data-p='${p}'][data-d='${d}']`);
+        if (cell) {
+            const val = constraintMatrix[p][d];
+            cell.textContent = val === null ? '' : SHIFT_NAMES[val];
+            cell.className = 'constraint-cell ';
+            if (val !== null) cell.classList.add(val === 0 ? 'rest' : `shift-${SHIFT_NAMES[val]}`);
+            if (monthData.isHoliday[d]) cell.classList.add('weekend');
+        }
+    }
+
+    function clearConstraints() {
+        if (confirm('確定清除所有條件嗎？')) {
+            initConstraintMatrix();
+            renderConstraintTable();
+        }
+    }
+
+    // 從條件表建立 fixed 矩陣 (-1 表示無限制)
+    function buildFixedFromConstraints() {
+        if (!monthData) return null;
+        const numDays = monthData.numDays;
+        const fixed = Array.from({ length: NUM_PEOPLE }, () => new Array(numDays).fill(-1));
+        let hasConstraint = false;
+        for (let p = 0; p < NUM_PEOPLE; p++) {
+            for (let d = 0; d < numDays; d++) {
+                if (constraintMatrix[p]?.[d] !== null) {
+                    fixed[p][d] = constraintMatrix[p][d];
+                    hasConstraint = true;
+                }
+            }
+        }
+        return hasConstraint ? fixed : null;
+    }
+
+    // 需求更新
+    function updateDemand() {
+        const getVal = (id) => parseInt(document.getElementById(id).value) || 0;
+        const wdAMin = getVal('wdAMin'), wdAMax = getVal('wdAMax');
+        const wdBMin = getVal('wdBMin'), wdBMax = getVal('wdBMax');
+        const wdCMin = getVal('wdCMin'), wdCMax = getVal('wdCMax');
+        const wdDMin = getVal('wdDMin'), wdDMax = getVal('wdDMax');
+        const weAMin = getVal('weAMin'), weAMax = getVal('weAMax');
+        const weBMin = getVal('weBMin'), weBMax = getVal('weBMax');
+        const weCMin = getVal('weCMin'), weCMax = getVal('weCMax');
+        const weDMin = getVal('weDMin'), weDMax = getVal('weDMax');
+
+        const checkPair = (min, max, name) => { if (min > max) throw new Error(`${name} 最少(${min})不能大於最多(${max})`); };
+        try {
+            checkPair(wdAMin, wdAMax, '平日A更'); checkPair(wdBMin, wdBMax, '平日B更');
+            checkPair(wdCMin, wdCMax, '平日C更'); checkPair(wdDMin, wdDMax, '平日D更');
+            checkPair(weAMin, weAMax, '假日A更'); checkPair(weBMin, weBMax, '假日B更');
+            checkPair(weCMin, weCMax, '假日C更'); checkPair(weDMin, weDMax, '假日D更');
+        } catch (e) { alert(e.message); return; }
+
+        WEEKDAY_MIN = [0, wdAMin, wdBMin, wdCMin, wdDMin];
+        WEEKDAY_MAX = [0, wdAMax, wdBMax, wdCMax, wdDMax];
+        WEEKEND_MIN = [0, weAMin, weBMin, weCMin, weDMin];
+        WEEKEND_MAX = [0, weAMax, weBMax, weCMax, weDMax];
+
+        document.getElementById('wdTotal').textContent = `${wdAMin+wdBMin+wdCMin+wdDMin} ~ ${wdAMax+wdBMax+wdCMax+wdDMax}`;
+        document.getElementById('weTotal').textContent = `${weAMin+weBMin+weCMin+weDMin} ~ ${weAMax+weBMax+weCMax+weDMax}`;
+        document.getElementById('minPeopleHint').textContent = Math.max(wdAMin+wdBMin+wdCMin+wdDMin, weAMin+weBMin+weCMin+weDMin);
         clearOutput();
     }
 
-    const demandInputIds = ['wdA','wdB','wdC','wdD','weA','weB','weC','weD'];
-    demandInputIds.forEach(id => {
-        document.getElementById(id).addEventListener('input', function() {
-            const wdA = parseInt(document.getElementById('wdA').value) || 0;
-            const wdB = parseInt(document.getElementById('wdB').value) || 0;
-            const wdC = parseInt(document.getElementById('wdC').value) || 0;
-            const wdD = parseInt(document.getElementById('wdD').value) || 0;
-            const weA = parseInt(document.getElementById('weA').value) || 0;
-            const weB = parseInt(document.getElementById('weB').value) || 0;
-            const weC = parseInt(document.getElementById('weC').value) || 0;
-            const weD = parseInt(document.getElementById('weD').value) || 0;
-
-            const wdSum = wdA + wdB + wdC + wdD;
-            const weSum = weA + weB + weC + weD;
-            document.getElementById('wdTotal').textContent = wdSum;
-            document.getElementById('weTotal').textContent = weSum;
-
-            const minRequired = Math.max(wdSum, weSum);
-            document.getElementById('minPeopleHint').textContent = minRequired;
-            document.getElementById('totalPeople').min = minRequired;
+    // 輸入監聽
+    const allDemandInputs = ['wdAMin','wdAMax','wdBMin','wdBMax','wdCMin','wdCMax','wdDMin','wdDMax',
+                             'weAMin','weAMax','weBMin','weBMax','weCMin','weCMax','weDMin','weDMax'];
+    allDemandInputs.forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+            const g = (id) => parseInt(document.getElementById(id).value)||0;
+            const wdMin = g('wdAMin')+g('wdBMin')+g('wdCMin')+g('wdDMin');
+            const wdMax = g('wdAMax')+g('wdBMax')+g('wdCMax')+g('wdDMax');
+            const weMin = g('weAMin')+g('weBMin')+g('weCMin')+g('weDMin');
+            const weMax = g('weAMax')+g('weBMax')+g('weCMax')+g('weDMax');
+            document.getElementById('wdTotal').textContent = `${wdMin} ~ ${wdMax}`;
+            document.getElementById('weTotal').textContent = `${weMin} ~ ${weMax}`;
+            document.getElementById('minPeopleHint').textContent = Math.max(wdMin, weMin);
         });
     });
 
@@ -429,12 +366,10 @@
         document.getElementById('schedule-output').innerHTML = '';
         document.getElementById('summary').innerHTML = '';
         document.getElementById('status').innerHTML = '需求已更新，請重新生成班表。';
-        currentSchedule = null;
-        currentNames = null;
+        currentSchedule = null; currentNames = null;
         document.getElementById('downloadBtn').disabled = true;
     }
 
-    // ==================== 日期工具 ====================
     function getDaysInMonth(year, month) {
         const date = new Date(year, month, 0);
         const numDays = date.getDate();
@@ -449,73 +384,49 @@
 
     function updateMonthData() {
         monthData = getDaysInMonth(currentYear, currentMonth);
-
-        const firstDay = new Date(currentYear, currentMonth - 1, 1);
-        const lastDay = new Date(currentYear, currentMonth - 1, monthData.numDays);
-        const startInput = document.getElementById('leaveStart');
-        const endInput = document.getElementById('leaveEnd');
-        startInput.min = firstDay.toISOString().split('T')[0];
-        startInput.max = lastDay.toISOString().split('T')[0];
-        endInput.min = firstDay.toISOString().split('T')[0];
-        endInput.max = lastDay.toISOString().split('T')[0];
-
-        leaveEntries = leaveEntries.map(e => ({
-            ...e,
-            ...clipLeaveToMonth(e.rawStart, e.rawEnd)
-        })).filter(e => e.startDay !== null);
-
+        const firstDay = new Date(currentYear, currentMonth-1, 1);
+        const lastDay = new Date(currentYear, currentMonth-1, monthData.numDays);
+        document.getElementById('leaveStart').min = firstDay.toISOString().split('T')[0];
+        document.getElementById('leaveStart').max = lastDay.toISOString().split('T')[0];
+        document.getElementById('leaveEnd').min = firstDay.toISOString().split('T')[0];
+        document.getElementById('leaveEnd').max = lastDay.toISOString().split('T')[0];
+        leaveEntries = leaveEntries.map(e => ({...e, ...clipLeaveToMonth(e.rawStart, e.rawEnd)})).filter(e => e.startDay !== null);
         renderLeaveList();
+        initConstraintMatrix();
+        renderConstraintTable();
         clearOutput();
     }
 
-    function clipLeaveToMonth(startDateStr, endDateStr) {
-        const start = new Date(startDateStr + 'T00:00:00');
-        const end = new Date(endDateStr + 'T00:00:00');
-        const monthFirst = new Date(currentYear, currentMonth - 1, 1);
-        const monthLast = new Date(currentYear, currentMonth - 1, monthData.numDays);
-        if (start > monthLast || end < monthFirst) return { startDay: null, endDay: null };
-        const clipStart = start < monthFirst ? monthFirst : start;
-        const clipEnd = end > monthLast ? monthLast : end;
-        return { startDay: clipStart.getDate(), endDay: clipEnd.getDate() };
+    function clipLeaveToMonth(startStr, endStr) {
+        const start = new Date(startStr + 'T00:00:00');
+        const end = new Date(endStr + 'T00:00:00');
+        const mFirst = new Date(currentYear, currentMonth-1, 1);
+        const mLast = new Date(currentYear, currentMonth-1, monthData.numDays);
+        if (start > mLast || end < mFirst) return { startDay: null, endDay: null };
+        const s = start < mFirst ? mFirst : start;
+        const e = end > mLast ? mLast : end;
+        return { startDay: s.getDate(), endDay: e.getDate() };
     }
 
-    // ==================== 總人數處理 ====================
     function onTotalChange() {
         const input = document.getElementById('totalPeople');
         let val = parseInt(input.value);
-        const minRequired = Math.max(
-            WEEKDAY_DEMAND[1]+WEEKDAY_DEMAND[2]+WEEKDAY_DEMAND[3]+WEEKDAY_DEMAND[4],
-            WEEKEND_DEMAND[1]+WEEKEND_DEMAND[2]+WEEKEND_DEMAND[3]+WEEKEND_DEMAND[4]
-        );
-        if (isNaN(val) || val < minRequired) {
-            alert(`總人數最少需要 ${minRequired} 人。`);
-            input.value = NUM_PEOPLE;
-            return;
-        }
+        const minSums = [WEEKDAY_MIN[1]+WEEKDAY_MIN[2]+WEEKDAY_MIN[3]+WEEKDAY_MIN[4],
+                         WEEKEND_MIN[1]+WEEKEND_MIN[2]+WEEKEND_MIN[3]+WEEKEND_MIN[4]];
+        const minRequired = Math.max(...minSums);
+        if (isNaN(val) || val < minRequired) { alert(`最少需要 ${minRequired} 人`); input.value = NUM_PEOPLE; return; }
         NUM_PEOPLE = val;
         initDefaultNames();
-        leaveEntries = [];
-        renderLeaveList();
+        leaveEntries = []; renderLeaveList();
+        initConstraintMatrix(); renderConstraintTable();
         clearOutput();
     }
 
-    // ==================== 年月選擇器 ====================
     function initYearMonthSelectors() {
-        const yearSel = document.getElementById('yearSelect');
-        const monthSel = document.getElementById('monthSelect');
-        yearSel.innerHTML = ''; monthSel.innerHTML = '';
-        for (let y = 2020; y <= 2030; y++) {
-            const opt = document.createElement('option');
-            opt.value = y; opt.textContent = y + '年';
-            if (y === currentYear) opt.selected = true;
-            yearSel.appendChild(opt);
-        }
-        for (let m = 1; m <= 12; m++) {
-            const opt = document.createElement('option');
-            opt.value = m; opt.textContent = m + '月';
-            if (m === currentMonth) opt.selected = true;
-            monthSel.appendChild(opt);
-        }
+        const ySel = document.getElementById('yearSelect'), mSel = document.getElementById('monthSelect');
+        ySel.innerHTML = ''; mSel.innerHTML = '';
+        for (let y = 2020; y <= 2030; y++) { const o = document.createElement('option'); o.value = y; o.textContent = y+'年'; if(y===currentYear) o.selected=true; ySel.appendChild(o); }
+        for (let m = 1; m <= 12; m++) { const o = document.createElement('option'); o.value = m; o.textContent = m+'月'; if(m===currentMonth) o.selected=true; mSel.appendChild(o); }
         updateMonthData();
     }
 
@@ -523,33 +434,28 @@
         currentYear = parseInt(document.getElementById('yearSelect').value);
         currentMonth = parseInt(document.getElementById('monthSelect').value);
         updateMonthData();
-        document.getElementById('status').innerHTML = `已切換至 ${currentYear}年${currentMonth}月，請假已重新計算。請重新生成班表。`;
-        clearOutput();
+        document.getElementById('status').innerHTML = `已切換至 ${currentYear}年${currentMonth}月，條件表已重置。`;
     }
 
-    // ==================== 姓名管理 ====================
     function updateNameCount() {
-        const raw = document.getElementById('nameInput').value.trim();
-        const lines = raw.split('\n').filter(s => s.trim().length > 0);
+        const lines = document.getElementById('nameInput').value.trim().split('\n').filter(s=>s.trim());
         document.getElementById('nameCount').textContent = lines.length;
         updateLeavePersonSelect();
     }
 
     function initDefaultNames() {
-        const names = Array.from({length: NUM_PEOPLE}, (_, i) => `P${String(i+1).padStart(2,'0')}`);
-        document.getElementById('nameInput').value = names.join('\n');
+        document.getElementById('nameInput').value = Array.from({length: NUM_PEOPLE}, (_,i)=>`P${String(i+1).padStart(2,'0')}`).join('\n');
         updateNameCount();
     }
 
     function getNames() {
-        const raw = document.getElementById('nameInput').value.trim();
-        const lines = raw.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+        const lines = document.getElementById('nameInput').value.trim().split('\n').map(s=>s.trim()).filter(s=>s);
         if (lines.length !== NUM_PEOPLE) {
-            document.getElementById('errorBox').style.display = 'block';
+            document.getElementById('errorBox').style.display='block';
             document.getElementById('errorBox').textContent = `人數錯誤！需要 ${NUM_PEOPLE} 個姓名，目前有 ${lines.length} 個。`;
             return null;
         }
-        document.getElementById('errorBox').style.display = 'none';
+        document.getElementById('errorBox').style.display='none';
         return lines;
     }
 
@@ -560,397 +466,130 @@
         const select = document.getElementById('leavePerson');
         select.innerHTML = '<option value="">--選擇員工--</option>';
         if (!names) return;
-        names.forEach((name, idx) => {
-            const opt = document.createElement('option');
-            opt.value = idx; opt.textContent = name;
-            select.appendChild(opt);
-        });
+        names.forEach((n,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=n; select.appendChild(o); });
     }
 
-    // ==================== 請假功能 ====================
     function addLeave() {
-        const personIndex = parseInt(document.getElementById('leavePerson').value);
-        const startDate = document.getElementById('leaveStart').value;
-        const endDate = document.getElementById('leaveEnd').value;
-        if (isNaN(personIndex)) { alert('請選擇員工'); return; }
-        if (!startDate || !endDate) { alert('請選擇日期'); return; }
-        const start = new Date(startDate + 'T00:00:00');
-        const end = new Date(endDate + 'T00:00:00');
-        if (start > end) { alert('開始日期不能晚於結束日期'); return; }
-
-        const { startDay, endDay } = clipLeaveToMonth(startDate, endDate);
-        if (startDay === null) {
-            alert(`所選日期範圍不在 ${currentYear}年${currentMonth}月內，不會加入請假。`);
-            return;
-        }
-        leaveEntries.push({ personIndex, startDay, endDay, rawStart: startDate, rawEnd: endDate });
+        const pIdx = parseInt(document.getElementById('leavePerson').value);
+        const s = document.getElementById('leaveStart').value, e = document.getElementById('leaveEnd').value;
+        if (isNaN(pIdx)) { alert('請選擇員工'); return; }
+        if (!s || !e) { alert('請選擇日期'); return; }
+        if (new Date(s) > new Date(e)) { alert('開始日期不能晚於結束日期'); return; }
+        const { startDay, endDay } = clipLeaveToMonth(s, e);
+        if (startDay === null) { alert('日期範圍不在本月內'); return; }
+        leaveEntries.push({ personIndex: pIdx, startDay, endDay, rawStart: s, rawEnd: e });
         renderLeaveList();
-        document.getElementById('leaveStart').value = '';
-        document.getElementById('leaveEnd').value = '';
+        document.getElementById('leaveStart').value = ''; document.getElementById('leaveEnd').value = '';
     }
 
-    function removeLeave(idx) {
-        leaveEntries.splice(idx, 1);
-        renderLeaveList();
-    }
+    function removeLeave(idx) { leaveEntries.splice(idx,1); renderLeaveList(); }
 
     function renderLeaveList() {
         const container = document.getElementById('leaveList');
-        if (leaveEntries.length === 0) {
-            container.innerHTML = '<p style="color:#94a3b8; text-align:center;">尚未設定任何請假</p>';
-            return;
-        }
+        if (leaveEntries.length === 0) { container.innerHTML = '<p style="color:#94a3b8;text-align:center;">尚未設定任何請假</p>'; return; }
         const names = getNames() || [];
-        let html = '';
-        leaveEntries.forEach((e, i) => {
+        container.innerHTML = leaveEntries.map((e,i) => {
             const name = names[e.personIndex] || `員工${e.personIndex+1}`;
-            const rawRange = `${e.rawStart} ~ ${e.rawEnd}`;
-            const effectiveRange = e.startDay === e.endDay ?
-                `${currentMonth}月${e.startDay}日` :
-                `${currentMonth}月${e.startDay}日 ~ ${currentMonth}月${e.endDay}日`;
-            html += `<div class="leave-item">
-                <span><b>${name}</b>：${rawRange}<br><small>📌 本月實際：${effectiveRange}</small></span>
-                <button class="btn-danger" onclick="removeLeave(${i})">🗑️ 刪除</button>
-            </div>`;
-        });
-        container.innerHTML = html;
+            return `<div class="leave-item"><span><b>${name}</b>：${e.rawStart} ~ ${e.rawEnd}<br><small>📌 本月實際：${e.startDay===e.endDay ? `${currentMonth}月${e.startDay}日` : `${currentMonth}月${e.startDay}日 ~ ${currentMonth}月${e.endDay}日`}</small></span><button class="btn-danger" onclick="removeLeave(${i})">🗑️ 刪除</button></div>`;
+        }).join('');
     }
 
     function buildLeaveSets() {
-        const leaves = Array.from({length: NUM_PEOPLE}, () => new Set());
-        leaveEntries.forEach(e => {
-            for (let d = e.startDay; d <= e.endDay; d++) leaves[e.personIndex].add(d - 1);
-        });
+        const leaves = Array.from({length: NUM_PEOPLE}, ()=>new Set());
+        leaveEntries.forEach(e => { for (let d=e.startDay; d<=e.endDay; d++) leaves[e.personIndex].add(d-1); });
         return leaves;
     }
 
-    // ==================== 衝突檢查（用於 CSV 上載） ====================
-    function validateFixedCSV(fixed, names, leaves) {
-        const warnings = [];
-        const conflictCells = new Set(); // 記錄 (p,d) 需要標紅的格子
+    // 求解器
+    function shuffleArray(arr) { for (let i=arr.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } }
 
-        const numDays = monthData.numDays;
-        // 檢查請假衝突、假日 D 更
-        for (let p = 0; p < NUM_PEOPLE; p++) {
-            for (let d = 0; d < numDays; d++) {
-                if (fixed[p][d] === -1) continue;
-                // 請假衝突
-                if (leaves[p].has(d) && fixed[p][d] !== 0) {
-                    warnings.push(`${names[p]} 在 ${currentMonth}月${d+1}日 已請假，但固定排 ${SHIFT_NAMES[fixed[p][d]]} 更`);
-                    conflictCells.add(`${p},${d}`);
-                }
-                // 假日 D 更
-                if (monthData.isHoliday[d] && fixed[p][d] === 4) {
-                    warnings.push(`${names[p]} 在 ${currentMonth}月${d+1}日（假日）固定排 D 更`);
-                    conflictCells.add(`${p},${d}`);
-                }
-            }
-        }
-
-        // 檢查連續上班 > 4 天（僅檢查固定值序列，因為後續可能會被優化減少，但我們標記目前固定值造成的連續上班）
-        for (let p = 0; p < NUM_PEOPLE; p++) {
-            let cons = 0;
-            let consStart = -1;
-            for (let d = 0; d < numDays; d++) {
-                if (fixed[p][d] !== -1 && fixed[p][d] !== 0) {
-                    cons++;
-                    if (cons === 1) consStart = d;
-                } else {
-                    cons = 0;
-                    consStart = -1;
-                }
-                if (cons > 4) {
-                    // 標記從導致超過的那天開始的連續天數
-                    warnings.push(`${names[p]} 在固定排班中連續上班超過 4 天（${currentMonth}月${consStart+1}日 ~ ${currentMonth}月${d+1}日）`);
-                    for (let i = consStart; i <= d; i++) {
-                        if (fixed[p][i] !== -1 && fixed[p][i] !== 0) {
-                            conflictCells.add(`${p},${i}`);
-                        }
-                    }
-                    // 避免重複警告同一段連續上班，重置 cons（但之後可能還會累積，簡化處理，跳出當前序列）
-                    cons = 0; 
-                    consStart = -1;
-                }
-            }
-        }
-
-        // 檢查每日需求超標（只對固定值）
-        for (let d = 0; d < numDays; d++) {
-            const demand = monthData.isHoliday[d] ? WEEKEND_DEMAND : WEEKDAY_DEMAND;
-            const cnt = [0,0,0,0,0];
-            for (let p = 0; p < NUM_PEOPLE; p++) {
-                if (fixed[p][d] !== -1) cnt[fixed[p][d]]++;
-            }
-            for (let s = 1; s <= 4; s++) {
-                if (cnt[s] > demand[s]) {
-                    warnings.push(`${currentMonth}月${d+1}日 ${SHIFT_NAMES[s]}更固定人數 (${cnt[s]}) 超出需求 (${demand[s]})`);
-                }
-            }
-        }
-
-        return { warnings, conflictCells };
-    }
-
-    // ==================== CSV 上載處理 ====================
-    function handleCSVUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const text = e.target.result;
-            const lines = text.trim().split('\n').map(l => l.trim()).filter(l => l);
-            if (lines.length < 2) {
-                alert('CSV 檔案格式不正確');
-                return;
-            }
-            const header = lines[0].split(',');
-            const expectedCols = monthData.numDays + 1;
-            if (header.length !== expectedCols) {
-                alert(`CSV 欄位數量不符，預期 ${expectedCols} 欄，實際 ${header.length} 欄`);
-                return;
-            }
-            for (let d = 0; d < monthData.numDays; d++) {
-                const date = monthData.days[d];
-                const expectedHeader = `${date.getDate()}日(週${'日一二三四五六'[date.getDay()]})`;
-                if (header[d+1] !== expectedHeader) {
-                    alert(`CSV 標題不符，第 ${d+1} 日應為「${expectedHeader}」，但收到「${header[d+1]}」`);
-                    return;
-                }
-            }
-            if (lines.length - 1 !== NUM_PEOPLE) {
-                alert(`CSV 員工人數不符，預期 ${NUM_PEOPLE} 人，實際 ${lines.length - 1} 人`);
-                return;
-            }
-
-            const names = getNames();
-            if (!names) return;
-
-            const fixed = [];
-            for (let i = 0; i < NUM_PEOPLE; i++) {
-                const cols = lines[i+1].split(',');
-                if (cols[0] !== names[i]) {
-                    alert(`第 ${i+2} 行姓名「${cols[0]}」與預期「${names[i]}」不符，請檢查順序`);
-                    return;
-                }
-                const row = [];
-                for (let d = 0; d < monthData.numDays; d++) {
-                    const cell = cols[d+1] ? cols[d+1].trim() : '';
-                    if (cell === '') {
-                        row.push(-1);
-                    } else {
-                        const val = SHIFT_MAP[cell];
-                        if (val === undefined) {
-                            alert(`第 ${i+2} 行第 ${d+2} 欄「${cell}」不是有效更別 (休/A/B/C/D)`);
-                            return;
-                        }
-                        row.push(val);
-                    }
-                }
-                fixed.push(row);
-            }
-
-            const leaves = buildLeaveSets();
-            const { warnings, conflictCells } = validateFixedCSV(fixed, names, leaves);
-
-            if (warnings.length > 0) {
-                const msg = '發現以下衝突，確定要繼續生成嗎？\n\n' + warnings.join('\n');
-                if (!confirm(msg)) {
-                    // 用戶取消，清空 file input
-                    document.getElementById('csvUpload').value = '';
-                    return;
-                }
-            }
-
-            // 繼續生成，傳遞 conflictCells 作為標記（生成後可能還有其他衝突，我們會重新計算）
-            generateScheduleWithFixed(fixed, conflictCells);
-        };
-        reader.readAsText(file, 'UTF-8');
-    }
-
-    // ==================== 求解演算法（支持固定值） ====================
-    function shuffleArray(arr) {
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-    }
-
-    function solveRoster(leaves, fixed = null) {
+    function solveRoster(leaves, fixed) {
         const numDays = monthData.numDays;
         const isHoliday = monthData.isHoliday;
-        let roster = Array.from({length: NUM_PEOPLE}, () => new Array(numDays).fill(0));
-
-        // 先套用固定值
+        let roster = Array.from({length: NUM_PEOPLE}, ()=>new Array(numDays).fill(0));
         if (fixed) {
-            for (let p = 0; p < NUM_PEOPLE; p++) {
-                for (let d = 0; d < numDays; d++) {
-                    if (fixed[p][d] !== -1) {
-                        roster[p][d] = fixed[p][d];
-                    }
-                }
-            }
+            for (let p=0; p<NUM_PEOPLE; p++) for (let d=0; d<numDays; d++) if (fixed[p][d]!==-1) roster[p][d]=fixed[p][d];
         }
-
-        // 填充未固定的格子，盡量滿足需求
-        for (let d = 0; d < numDays; d++) {
-            const demand = isHoliday[d] ? WEEKEND_DEMAND : WEEKDAY_DEMAND;
-            const currentCount = [0,0,0,0,0];
-            const unfixedPeople = [];
-            for (let p = 0; p < NUM_PEOPLE; p++) {
-                if (fixed && fixed[p][d] !== -1) {
-                    currentCount[roster[p][d]]++;
-                } else {
-                    unfixedPeople.push(p);
-                }
+        for (let d=0; d<numDays; d++) {
+            const dMin = isHoliday[d] ? WEEKEND_MIN : WEEKDAY_MIN;
+            const dMax = isHoliday[d] ? WEEKEND_MAX : WEEKDAY_MAX;
+            const cnt = [0,0,0,0,0];
+            const unfixed = [];
+            for (let p=0; p<NUM_PEOPLE; p++) {
+                if (fixed && fixed[p][d]!==-1) cnt[roster[p][d]]++;
+                else unfixed.push(p);
             }
-            // 計算仍需多少各更人數（如果已超標，則 needed 可能為負，我們設為0避免錯誤）
             const needed = [];
-            for (let s = 1; s <= 4; s++) {
-                const need = Math.max(0, demand[s] - currentCount[s]);
-                for (let k = 0; k < need; k++) needed.push(s);
+            for (let s=1; s<=4; s++) {
+                const need = Math.max(0, dMin[s] - cnt[s]);
+                const slots = Math.max(0, dMax[s] - cnt[s]);
+                for (let k=0; k<Math.min(need, slots); k++) needed.push(s);
             }
-            // 從 unfixedPeople 中扣除請假者（他們必須休息）
-            const availablePeople = unfixedPeople.filter(p => !leaves[p].has(d));
-            shuffleArray(availablePeople);
-            const selected = availablePeople.slice(0, needed.length);
-            const pool = [...needed];
-            shuffleArray(pool);
-            for (let i = 0; i < selected.length; i++) {
-                roster[selected[i]][d] = pool[i];
-            }
-            // 其餘未選中的 unfixedPeople 設為休息
-            for (const p of unfixedPeople) {
-                if (!selected.includes(p) || leaves[p].has(d)) {
-                    roster[p][d] = 0;
-                }
-            }
+            const avail = unfixed.filter(p => !leaves[p].has(d));
+            shuffleArray(avail);
+            const sel = avail.slice(0, needed.length);
+            const pool = [...needed]; shuffleArray(pool);
+            for (let i=0; i<sel.length; i++) roster[sel[i]][d] = pool[i];
+            for (const p of unfixed) if (!sel.includes(p) || leaves[p].has(d)) roster[p][d]=0;
         }
-
-        // 衝突最小化（只針對連續上班，不動固定值）
         function calcConflicts(s) {
-            let total = 0;
-            for (let p = 0; p < NUM_PEOPLE; p++) {
-                let cons = 0;
-                for (let d = 0; d < numDays; d++) {
-                    if (s[p][d] !== 0) { cons++; if (cons > 4) total++; }
-                    else cons = 0;
-                }
-            }
+            let total=0;
+            for (let p=0; p<NUM_PEOPLE; p++) { let c=0; for (let d=0; d<numDays; d++) { if(s[p][d]!==0){c++; if(c>4)total++;} else c=0; } }
             return total;
         }
-
-        function delta(p1, p2, d, sched) {
-            const o1 = sched[p1][d], o2 = sched[p2][d];
-            if (o1 === o2) return 0;
-            sched[p1][d] = o2; sched[p2][d] = o1;
-            let nc = 0;
-            for (const p of [p1, p2]) {
-                let c = 0;
-                for (let day = 0; day < numDays; day++) {
-                    if (sched[p][day] !== 0) { c++; if (c > 4) nc++; }
-                    else c = 0;
-                }
-            }
-            sched[p1][d] = o1; sched[p2][d] = o2;
-            let oc = 0;
-            for (const p of [p1, p2]) {
-                let c = 0;
-                for (let day = 0; day < numDays; day++) {
-                    if (sched[p][day] !== 0) { c++; if (c > 4) oc++; }
-                    else c = 0;
-                }
-            }
-            return nc - oc;
+        function delta(p1,p2,d,sched) {
+            const o1=sched[p1][d], o2=sched[p2][d]; if(o1===o2) return 0;
+            sched[p1][d]=o2; sched[p2][d]=o1;
+            let nc=0; for(const p of [p1,p2]){let c=0; for(let day=0; day<numDays; day++){if(sched[p][day]!==0){c++; if(c>4)nc++;} else c=0;}}
+            sched[p1][d]=o1; sched[p2][d]=o2;
+            let oc=0; for(const p of [p1,p2]){let c=0; for(let day=0; day<numDays; day++){if(sched[p][day]!==0){c++; if(c>4)oc++;} else c=0;}}
+            return nc-oc;
         }
-
-        let schedule = roster;
-        let conflict = calcConflicts(schedule);
+        let schedule = roster, conflict = calcConflicts(schedule);
         const startTime = Date.now();
-        const TIME_LIMIT = 15000;
-        for (let iter = 0; iter < 200000; iter++) {
-            if (conflict === 0) break;
-            if (Date.now() - startTime > TIME_LIMIT) break;
+        for (let iter=0; iter<200000; iter++) {
+            if (conflict===0 || Date.now()-startTime>15000) break;
             const cPeople = [];
-            for (let p = 0; p < NUM_PEOPLE; p++) {
-                let c = 0;
-                for (let d = 0; d < numDays; d++) {
-                    if (schedule[p][d] !== 0) { c++; if (c > 4) { cPeople.push(p); break; } }
-                    else c = 0;
-                }
-            }
-            let p1 = cPeople.length && Math.random() < 0.8 ? cPeople[Math.floor(Math.random()*cPeople.length)] : Math.floor(Math.random()*NUM_PEOPLE);
+            for (let p=0; p<NUM_PEOPLE; p++){let c=0; for(let d=0; d<numDays; d++){if(schedule[p][d]!==0){c++; if(c>4){cPeople.push(p); break;}} else c=0;}}
+            let p1 = cPeople.length && Math.random()<0.8 ? cPeople[Math.floor(Math.random()*cPeople.length)] : Math.floor(Math.random()*NUM_PEOPLE);
             let d = Math.floor(Math.random()*numDays);
-            if (fixed && fixed[p1][d] !== -1) continue;
+            if (fixed && fixed[p1][d]!==-1) continue;
             if (leaves[p1].has(d)) continue;
-            let p2;
-            do { p2 = Math.floor(Math.random()*NUM_PEOPLE); } while (p2 === p1);
-            if (fixed && fixed[p2][d] !== -1) continue;
+            let p2; do { p2 = Math.floor(Math.random()*NUM_PEOPLE); } while (p2===p1);
+            if (fixed && fixed[p2][d]!==-1) continue;
             if (leaves[p2].has(d)) continue;
-            if (schedule[p1][d] === schedule[p2][d]) continue;
-            const dlt = delta(p1, p2, d, schedule);
-            if (dlt <= 0 || Math.random() < 0.02) {
-                [schedule[p1][d], schedule[p2][d]] = [schedule[p2][d], schedule[p1][d]];
-                conflict += dlt;
-            }
+            if (schedule[p1][d]===schedule[p2][d]) continue;
+            const dlt = delta(p1,p2,d,schedule);
+            if (dlt<=0 || Math.random()<0.02) { [schedule[p1][d],schedule[p2][d]]=[schedule[p2][d],schedule[p1][d]]; conflict+=dlt; }
         }
-        return { success: conflict === 0, schedule, conflict };
+        return { success: conflict===0, schedule, conflict };
     }
 
-    // ==================== 顯示班表（含衝突標記） ====================
-    function displaySchedule(schedule, names, leaves, conflictSet = null) {
-        const numDays = monthData.numDays;
-        const days = monthData.days;
-        const isHoliday = monthData.isHoliday;
-
-        // 如果沒有提供 conflictSet，則自動計算所有衝突格子
+    function displaySchedule(schedule, names, leaves, conflictSet=null) {
+        const numDays = monthData.numDays, days = monthData.days, isHoliday = monthData.isHoliday;
         if (!conflictSet) {
             conflictSet = new Set();
-            // 請假衝突 & 假日 D 更
-            for (let p = 0; p < NUM_PEOPLE; p++) {
-                for (let d = 0; d < numDays; d++) {
-                    if (leaves[p].has(d) && schedule[p][d] !== 0) conflictSet.add(`${p},${d}`);
-                    if (isHoliday[d] && schedule[p][d] === 4) conflictSet.add(`${p},${d}`);
-                }
+            for (let p=0; p<NUM_PEOPLE; p++) for (let d=0; d<numDays; d++) {
+                if (leaves[p].has(d) && schedule[p][d]!==0) conflictSet.add(`${p},${d}`);
+                if (isHoliday[d] && schedule[p][d]===4) conflictSet.add(`${p},${d}`);
             }
-            // 連續上班衝突
-            for (let p = 0; p < NUM_PEOPLE; p++) {
-                let cons = 0;
-                let consStart = -1;
-                for (let d = 0; d < numDays; d++) {
-                    if (schedule[p][d] !== 0) {
-                        cons++;
-                        if (cons === 1) consStart = d;
-                    } else {
-                        cons = 0;
-                        consStart = -1;
-                    }
-                    if (cons > 4) {
-                        for (let i = consStart; i <= d; i++) {
-                            conflictSet.add(`${p},${i}`);
-                        }
-                        // 重置計數以避免同一段重複標記後段
-                        cons = 0;
-                        consStart = -1;
-                    }
-                }
+            for (let p=0; p<NUM_PEOPLE; p++) { let c=0, cs=-1; for (let d=0; d<numDays; d++) { if(schedule[p][d]!==0){c++; if(c===1)cs=d;} else{c=0;cs=-1;} if(c>4){ for(let i=cs; i<=d; i++) conflictSet.add(`${p},${i}`); c=0; cs=-1; } } }
+            for (let d=0; d<numDays; d++) {
+                const dMin=isHoliday[d]?WEEKEND_MIN:WEEKDAY_MIN, dMax=isHoliday[d]?WEEKEND_MAX:WEEKDAY_MAX;
+                const cnt=[0,0,0,0,0]; for(let p=0;p<NUM_PEOPLE;p++) cnt[schedule[p][d]]++;
+                for(let s=1; s<=4; s++) if(cnt[s]<dMin[s]||cnt[s]>dMax[s]) for(let p=0;p<NUM_PEOPLE;p++) if(schedule[p][d]===s) conflictSet.add(`${p},${d}`);
             }
         }
-
         let html = '<table><tr><th class="person-col">姓名</th>';
-        for (let d = 0; d < numDays; d++) {
-            const date = days[d];
-            const dow = '日一二三四五六'[date.getDay()];
-            html += `<th class="${isHoliday[d] ? 'weekend' : ''}">${date.getDate()}<br>週${dow}</th>`;
-        }
+        for (let d=0; d<numDays; d++) html += `<th class="${isHoliday[d]?'weekend':''}">${days[d].getDate()}<br>週${'日一二三四五六'[days[d].getDay()]}</th>`;
         html += '</tr>';
-        for (let p = 0; p < NUM_PEOPLE; p++) {
+        for (let p=0; p<NUM_PEOPLE; p++) {
             html += `<tr><td class="person-col">${names[p]}</td>`;
-            for (let d = 0; d < numDays; d++) {
-                const s = schedule[p][d];
-                const sn = SHIFT_NAMES[s];
-                let cls = s === 0 ? 'rest' : (['','shift-A','shift-B','shift-C','shift-D'])[s];
-                if (isHoliday[d]) cls += ' weekend';
-                if (conflictSet.has(`${p},${d}`)) cls += ' conflict';
+            for (let d=0; d<numDays; d++) {
+                const s=schedule[p][d], sn=SHIFT_NAMES[s];
+                let cls = s===0?'rest':['','shift-A','shift-B','shift-C','shift-D'][s];
+                if(isHoliday[d]) cls+=' weekend';
+                if(conflictSet.has(`${p},${d}`)) cls+=' conflict';
                 html += `<td class="${cls}">${sn}</td>`;
             }
             html += '</tr>';
@@ -958,189 +597,127 @@
         html += '</table>';
         document.getElementById('schedule-output').innerHTML = html;
 
-        // 檢查摘要
-        let totalDemand = 0;
-        for (let d = 0; d < numDays; d++) {
-            const demand = isHoliday[d] ? WEEKEND_DEMAND : WEEKDAY_DEMAND;
-            totalDemand += demand[1]+demand[2]+demand[3]+demand[4];
-        }
-
-        let check = '<h2>📊 檢查結果</h2>';
-        let dayOk = true;
-        for (let d = 0; d < numDays; d++) {
-            const demand = isHoliday[d] ? WEEKEND_DEMAND : WEEKDAY_DEMAND;
-            const cnt = [0,0,0,0,0];
-            for (let p = 0; p < NUM_PEOPLE; p++) cnt[schedule[p][d]]++;
-            for (let s = 1; s <= 4; s++) if (cnt[s] !== demand[s]) { dayOk = false; break; }
-        }
-        check += `<p>每日需求：<span class="${dayOk ? 'check-ok' : 'check-fail'}">${dayOk ? '✅ 完全符合' : '❌ 有誤'}</span></p>`;
-
-        let consOk = true;
-        for (let p = 0; p < NUM_PEOPLE; p++) {
-            let c = 0;
-            for (let d = 0; d < numDays; d++) {
-                if (schedule[p][d] !== 0) { c++; if (c > 4) { consOk = false; break; } }
-                else c = 0;
-            }
-        }
-        check += `<p>連續上班：<span class="${consOk ? 'check-ok' : 'check-fail'}">${consOk ? '✅ 冇人連續5天' : '❌ 有人超過4天'}</span></p>`;
-
-        let leaveOk = true;
-        for (let p = 0; p < NUM_PEOPLE; p++) for (let d of leaves[p]) if (schedule[p][d] !== 0) { leaveOk = false; break; }
-        check += `<p>請假休息：<span class="${leaveOk ? 'check-ok' : 'check-fail'}">${leaveOk ? '✅ 正確' : '❌ 有請假未休息'}</span></p>`;
-
-        const totalWork = schedule.flat().filter(v => v).length;
-        check += `<p>總人天：${totalWork} (需求${totalDemand}) ${totalWork === totalDemand ? '✅' : '❌'}</p>`;
-        document.getElementById('summary').innerHTML = check;
+        let totalMin=0, totalMax=0;
+        for(let d=0; d<numDays; d++) { const min=isHoliday[d]?WEEKEND_MIN:WEEKDAY_MIN, max=isHoliday[d]?WEEKEND_MAX:WEEKDAY_MAX; totalMin+=min[1]+min[2]+min[3]+min[4]; totalMax+=max[1]+max[2]+max[3]+max[4]; }
+        let dayOk=true;
+        for(let d=0; d<numDays; d++) { const min=isHoliday[d]?WEEKEND_MIN:WEEKDAY_MIN, max=isHoliday[d]?WEEKEND_MAX:WEEKDAY_MAX; const cnt=[0,0,0,0,0]; for(let p=0;p<NUM_PEOPLE;p++)cnt[schedule[p][d]]++; for(let s=1;s<=4;s++) if(cnt[s]<min[s]||cnt[s]>max[s]){dayOk=false; break;} }
+        let consOk=true;
+        for(let p=0;p<NUM_PEOPLE;p++){let c=0; for(let d=0;d<numDays;d++){if(schedule[p][d]!==0){c++; if(c>4){consOk=false;break;}}else c=0;}}
+        let leaveOk=true;
+        for(let p=0;p<NUM_PEOPLE;p++) for(let d of leaves[p]) if(schedule[p][d]!==0){leaveOk=false; break;}
+        const totalWork = schedule.flat().filter(v=>v).length;
+        document.getElementById('summary').innerHTML = `<h2>📊 檢查結果</h2>
+            <p>每日範圍：<span class="${dayOk?'check-ok':'check-fail'}">${dayOk?'✅ 完全符合':'❌ 有誤'}</span></p>
+            <p>連續上班：<span class="${consOk?'check-ok':'check-fail'}">${consOk?'✅ 冇人連續5天':'❌ 有人超過4天'}</span></p>
+            <p>請假休息：<span class="${leaveOk?'check-ok':'check-fail'}">${leaveOk?'✅ 正確':'❌ 有請假未休息'}</span></p>
+            <p>總人天：${totalWork} (需求範圍 ${totalMin}~${totalMax}) ${totalWork>=totalMin&&totalWork<=totalMax?'✅':'❌'}</p>`;
     }
 
-    // ==================== CSV 下載 ====================
     function downloadCSV() {
-        if (!currentSchedule || !currentNames) {
-            alert('請先生成班表');
-            return;
-        }
-        const numDays = monthData.numDays;
-        const days = monthData.days;
+        if(!currentSchedule||!currentNames) { alert('請先生成班表'); return; }
+        const numDays=monthData.numDays, days=monthData.days;
+        let csv='\uFEFF姓名';
+        for(let d=0;d<numDays;d++) csv+=`,${days[d].getDate()}日(週${'日一二三四五六'[days[d].getDay()]})`;
+        csv+='\n';
+        for(let p=0;p<NUM_PEOPLE;p++) { let row=currentNames[p]; for(let d=0;d<numDays;d++) row+=`,${SHIFT_NAMES[currentSchedule[p][d]]}`; csv+=row+'\n'; }
+        const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}), url=URL.createObjectURL(blob), a=document.createElement('a');
+        a.href=url; a.download=`排班表_${currentYear}_${currentMonth}.csv`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    }
 
-        let csvContent = '\uFEFF';
-        let header = '姓名';
-        for (let d = 0; d < numDays; d++) {
-            const date = days[d];
-            const dow = '日一二三四五六'[date.getDay()];
-            header += `,${date.getDate()}日(週${dow})`;
-        }
-        csvContent += header + '\n';
-
-        for (let p = 0; p < NUM_PEOPLE; p++) {
-            let row = currentNames[p];
-            for (let d = 0; d < numDays; d++) {
-                row += `,${SHIFT_NAMES[currentSchedule[p][d]]}`;
+    function handleCSVUpload(event) {
+        const file = event.target.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result;
+            const lines = text.trim().split('\n').map(l=>l.trim()).filter(l=>l);
+            if(lines.length<2){alert('格式不正確');return;}
+            const header=lines[0].split(','); if(header.length!==monthData.numDays+1){alert('欄位數不符');return;}
+            for(let d=0;d<monthData.numDays;d++){ const exp=`${monthData.days[d].getDate()}日(週${'日一二三四五六'[monthData.days[d].getDay()]})`; if(header[d+1]!==exp){alert(`標題不符: ${exp}`);return;}}
+            if(lines.length-1 !== NUM_PEOPLE){alert(`人數不符，預期${NUM_PEOPLE}人`);return;}
+            const names = getNames(); if(!names) return;
+            const fixed = [];
+            for(let i=0;i<NUM_PEOPLE;i++){
+                const cols=lines[i+1].split(','); if(cols[0]!==names[i]){alert(`姓名不符: ${cols[0]}`);return;}
+                const row=[];
+                for(let d=0;d<monthData.numDays;d++){
+                    const cell=cols[d+1]?cols[d+1].trim():'';
+                    if(cell==='') row.push(-1);
+                    else { const val=SHIFT_MAP[cell]; if(val===undefined){alert(`無效更別: ${cell}`);return;} row.push(val); }
+                }
+                fixed.push(row);
             }
-            csvContent += row + '\n';
-        }
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `排班表_${currentYear}_${currentMonth}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+            // 同步到條件表
+            for(let p=0;p<NUM_PEOPLE;p++) for(let d=0;d<monthData.numDays;d++) constraintMatrix[p][d] = fixed[p][d]===-1 ? null : fixed[p][d];
+            renderConstraintTable();
+            const leaves = buildLeaveSets();
+            const { warnings, conflictCells } = validateFixedCSV(fixed, names, leaves);
+            if(warnings.length>0 && !confirm('發現衝突：\n'+warnings.join('\n')+'\n\n確定繼續？')) { document.getElementById('csvUpload').value=''; return; }
+            generateScheduleWithFixed(fixed, conflictCells);
+        };
+        reader.readAsText(file, 'UTF-8');
     }
 
-    // ==================== 生成（含固定值） ====================
-    async function generateScheduleWithFixed(fixed, initialConflictCells = null) {
-        if (!monthData) return;
-        document.getElementById('schedule-output').innerHTML = '';
-        document.getElementById('summary').innerHTML = '';
-
-        const names = getNames();
-        if (!names) return;
-
-        const leaves = buildLeaveSets();
-
-        document.getElementById('status').innerHTML = '⏳ 正在根據 CSV 固定值計算班表，請稍候...';
-        const btn = document.getElementById('generateBtn');
-        btn.disabled = true;
-        btn.textContent = '計算中...';
-        document.getElementById('downloadBtn').disabled = true;
-
-        await new Promise(r => setTimeout(r, 50));
-
-        let result = null;
-        for (let attempt = 1; attempt <= 10; attempt++) {
-            result = solveRoster(leaves, fixed);
-            if (result.success) break;
-            document.getElementById('status').innerHTML = `⏳ 第 ${attempt} 次嘗試中...`;
-            await new Promise(r => setTimeout(r, 50));
+    function validateFixedCSV(fixed, names, leaves) {
+        const warnings=[], conflictCells=new Set();
+        const numDays=monthData.numDays;
+        for(let p=0;p<NUM_PEOPLE;p++) for(let d=0;d<numDays;d++){
+            if(fixed[p][d]===-1) continue;
+            if(leaves[p].has(d) && fixed[p][d]!==0){ warnings.push(`${names[p]} ${currentMonth}月${d+1}日請假卻排${SHIFT_NAMES[fixed[p][d]]}`); conflictCells.add(`${p},${d}`); }
+            if(monthData.isHoliday[d] && fixed[p][d]===4){ warnings.push(`${names[p]} ${currentMonth}月${d+1}日假日排D更`); conflictCells.add(`${p},${d}`); }
         }
+        for(let p=0;p<NUM_PEOPLE;p++){ let c=0,cs=-1; for(let d=0;d<numDays;d++){ if(fixed[p][d]!==-1&&fixed[p][d]!==0){c++; if(c===1)cs=d;} else{c=0;cs=-1;} if(c>4){ warnings.push(`${names[p]} 連續上班超過4天`); for(let i=cs;i<=d;i++) if(fixed[p][i]!==-1&&fixed[p][i]!==0) conflictCells.add(`${p},${i}`); c=0;cs=-1; } } }
+        for(let d=0;d<numDays;d++){ const dMin=monthData.isHoliday[d]?WEEKEND_MIN:WEEKDAY_MIN, dMax=monthData.isHoliday[d]?WEEKEND_MAX:WEEKDAY_MAX; const cnt=[0,0,0,0,0]; for(let p=0;p<NUM_PEOPLE;p++) if(fixed[p][d]!==-1) cnt[fixed[p][d]]++; for(let s=1;s<=4;s++){ if(cnt[s]<dMin[s]) warnings.push(`${currentMonth}月${d+1}日${SHIFT_NAMES[s]}更人數不足`); if(cnt[s]>dMax[s]){ warnings.push(`${currentMonth}月${d+1}日${SHIFT_NAMES[s]}更超標`); for(let p=0;p<NUM_PEOPLE;p++) if(fixed[p][d]===s) conflictCells.add(`${p},${d}`); } } }
+        return {warnings, conflictCells};
+    }
 
-        btn.disabled = false;
-        btn.textContent = '🔄 生成班表';
-
-        if (result && result.schedule) {
-            document.getElementById('status').innerHTML = '✅ 已生成班表（可能包含衝突）。';
-            // 合併初始衝突與最終計算出的衝突
-            const finalConflictSet = initialConflictCells ? new Set(initialConflictCells) : new Set();
-            // 重新掃描最終班表加入任何新衝突（因為優化可能改變了連續上班情況）
-            displaySchedule(result.schedule, names, leaves, finalConflictSet);
-            currentSchedule = result.schedule;
-            currentNames = names;
-            document.getElementById('downloadBtn').disabled = false;
+    async function generateScheduleWithFixed(fixed, initialConflictCells=null) {
+        if(!monthData) return;
+        document.getElementById('schedule-output').innerHTML=''; document.getElementById('summary').innerHTML='';
+        const names=getNames(); if(!names) return;
+        const leaves=buildLeaveSets();
+        document.getElementById('status').innerHTML='⏳ 計算中...';
+        const btn=document.getElementById('generateBtn'); btn.disabled=true; btn.textContent='計算中...'; document.getElementById('downloadBtn').disabled=true;
+        await new Promise(r=>setTimeout(r,50));
+        let result=null;
+        for(let i=1;i<=10;i++){ result=solveRoster(leaves, fixed); if(result.success) break; document.getElementById('status').innerHTML=`⏳ 第${i}次嘗試...`; await new Promise(r=>setTimeout(r,50)); }
+        btn.disabled=false; btn.textContent='🔄 生成班表';
+        if(result&&result.schedule){
+            document.getElementById('status').innerHTML='✅ 已生成班表（可能包含衝突）。';
+            const finalSet = initialConflictCells ? new Set(initialConflictCells) : new Set();
+            displaySchedule(result.schedule, names, leaves, finalSet);
+            currentSchedule=result.schedule; currentNames=names; document.getElementById('downloadBtn').disabled=false;
         } else {
-            document.getElementById('status').innerHTML = '❌ 暫時無法生成，請再試一次或減少請假。';
-            currentSchedule = null;
-            currentNames = null;
-            document.getElementById('downloadBtn').disabled = true;
+            document.getElementById('status').innerHTML='❌ 暫時無法生成，請再試一次。';
+            currentSchedule=null; currentNames=null; document.getElementById('downloadBtn').disabled=true;
         }
     }
 
-    // ==================== 一般生成 ====================
     async function generateSchedule() {
-        if (!monthData) return;
-        WEEKDAY_DEMAND = [0,
-            parseInt(document.getElementById('wdA').value)||0,
-            parseInt(document.getElementById('wdB').value)||0,
-            parseInt(document.getElementById('wdC').value)||0,
-            parseInt(document.getElementById('wdD').value)||0
-        ];
-        WEEKEND_DEMAND = [0,
-            parseInt(document.getElementById('weA').value)||0,
-            parseInt(document.getElementById('weB').value)||0,
-            parseInt(document.getElementById('weC').value)||0,
-            parseInt(document.getElementById('weD').value)||0
-        ];
-
-        const names = getNames();
-        if (!names) return;
-
-        const leaves = buildLeaveSets();
-        // 快速可行性檢查（不考慮固定值）
-        const neededMax = Math.max(...Array.from({length: monthData.numDays}, (_, d) => {
-            const demand = monthData.isHoliday[d] ? WEEKEND_DEMAND : WEEKDAY_DEMAND;
-            return demand[1]+demand[2]+demand[3]+demand[4];
-        }));
-        if (NUM_PEOPLE - leaveEntries.length < neededMax) {
-            // 簡單檢查，非精確但可提示
-        }
-
-        document.getElementById('status').innerHTML = '⏳ 正在計算班表，請稍候...';
-        const btn = document.getElementById('generateBtn');
-        btn.disabled = true;
-        btn.textContent = '計算中...';
-        document.getElementById('downloadBtn').disabled = true;
-
-        await new Promise(r => setTimeout(r, 50));
-
-        let result = null;
-        for (let attempt = 1; attempt <= 5; attempt++) {
-            result = solveRoster(leaves, null);
-            if (result.success) break;
-            document.getElementById('status').innerHTML = `⏳ 第 ${attempt} 次嘗試中...`;
-            await new Promise(r => setTimeout(r, 50));
-        }
-
-        btn.disabled = false;
-        btn.textContent = '🔄 生成班表';
-
-        if (result && result.success) {
-            document.getElementById('status').innerHTML = '✅ 成功生成班表！';
+        if(!monthData) return;
+        const getVal=(id)=>parseInt(document.getElementById(id).value)||0;
+        WEEKDAY_MIN=[0,getVal('wdAMin'),getVal('wdBMin'),getVal('wdCMin'),getVal('wdDMin')];
+        WEEKDAY_MAX=[0,getVal('wdAMax'),getVal('wdBMax'),getVal('wdCMax'),getVal('wdDMax')];
+        WEEKEND_MIN=[0,getVal('weAMin'),getVal('weBMin'),getVal('weCMin'),getVal('weDMin')];
+        WEEKEND_MAX=[0,getVal('weAMax'),getVal('weBMax'),getVal('weCMax'),getVal('weDMax')];
+        const names=getNames(); if(!names) return;
+        const leaves=buildLeaveSets();
+        const fixed = buildFixedFromConstraints();
+        document.getElementById('status').innerHTML='⏳ 計算中...';
+        const btn=document.getElementById('generateBtn'); btn.disabled=true; btn.textContent='計算中...'; document.getElementById('downloadBtn').disabled=true;
+        await new Promise(r=>setTimeout(r,50));
+        let result=null;
+        for(let i=1;i<=5;i++){ result=solveRoster(leaves, fixed); if(result.success) break; document.getElementById('status').innerHTML=`⏳ 第${i}次嘗試...`; await new Promise(r=>setTimeout(r,50)); }
+        btn.disabled=false; btn.textContent='🔄 生成班表';
+        if(result&&result.success){
+            document.getElementById('status').innerHTML='✅ 成功生成班表！';
             displaySchedule(result.schedule, names, leaves);
-            currentSchedule = result.schedule;
-            currentNames = names;
-            document.getElementById('downloadBtn').disabled = false;
+            currentSchedule=result.schedule; currentNames=names; document.getElementById('downloadBtn').disabled=false;
         } else {
-            document.getElementById('status').innerHTML = '❌ 暫時無法生成，請再試一次或減少請假。';
-            currentSchedule = null;
-            currentNames = null;
-            document.getElementById('downloadBtn').disabled = true;
+            document.getElementById('status').innerHTML='❌ 暫時無法生成，請再試一次或減少請假。';
+            currentSchedule=null; currentNames=null; document.getElementById('downloadBtn').disabled=true;
         }
     }
 
-    // ==================== 啟動 ====================
     window.onload = function() {
         NUM_PEOPLE = parseInt(document.getElementById('totalPeople').value);
         updateDemand();
