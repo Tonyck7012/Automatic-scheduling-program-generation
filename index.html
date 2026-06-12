@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能排班系統 - 專業電腦版</title>
+    <title>智能排班系統 - 專業電腦版 (支援年假AL)</title>
     <style>
         :root { 
             --bg: #f8fafc; 
@@ -24,9 +24,8 @@
         h1 { font-size: 2em; font-weight: 700; background: linear-gradient(135deg, #2563eb, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px; }
         .subtitle { color: var(--text-secondary); font-size: 0.95em; }
         
-        /* 電腦版雙欄佈局 */
-        .main-layout { display: flex; gap: 24px; align-items: flex-start; max-width: 1800px; margin: 0 auto; }
-        .sidebar { flex: 0 0 380px; display: flex; flex-direction: column; gap: 20px; }
+        .main-layout { display: flex; gap: 24px; align-items: flex-start; max-width: 100%; margin: 0 auto; }
+        .sidebar { flex: 0 0 300px; display: flex; flex-direction: column; gap: 20px; }
         .content-area { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
 
         .card { background: var(--card-bg); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); }
@@ -55,7 +54,7 @@
         .demand-item span:first-child { min-width: 35px; font-weight: 600; }
         .demand-item input { width: 55px; text-align: center; padding: 4px; border-radius: 6px; }
         
-        .n-rule-group { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; }
+        .n-rule-group { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
         small { font-size: 0.8em; color: var(--text-secondary); display: block; margin-top: 4px; line-height: 1.4; }
         
         .status { text-align: center; font-weight: 600; background: #e2e8f0; padding: 12px; border-radius: 8px; font-size: 0.95em; }
@@ -66,17 +65,20 @@
         th { background: #f1f5f9; font-weight: 600; position: sticky; top: 0; z-index: 2; color: #475569; }
         .person-col { background: #f8fafc; font-weight: 700; min-width: 80px; position: sticky; left: 0; z-index: 1; border-right: 2px solid #cbd5e1; }
         
-        .weekend { background-color: #fef2f2; } .rest { color: #94a3b8; background: #f8fafc; }
-        .shift-A { background: #d1fae5; color: #065f46; } .shift-C { background: #dbeafe; color: #1e3a8a; } 
-        .shift-D { background: #fef3c7; color: #92400e; } .shift-P { background: #ede9fe; color: #5b21b6; } 
+        .weekend { background-color: #fef2f2; } 
+        .rest { color: #94a3b8; background: #f8fafc; }
+        .shift-A { background: #d1fae5; color: #065f46; } 
+        .shift-C { background: #dbeafe; color: #1e3a8a; } 
+        .shift-D { background: #fef3c7; color: #92400e; } 
+        .shift-P { background: #ede9fe; color: #5b21b6; } 
         .shift-N { background: #ffe4e6; color: #9f1239; font-weight: 600; }
+        .shift-AL { background: #fae8ff; color: #6b21a8; font-weight: 600; }
         .conflict { background: #fee2e2 !important; color: #991b1b !important; font-weight: bold; box-shadow: inset 0 0 0 2px #ef4444; }
         
         .summary { background: var(--card-bg); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); }
         .constraint-cell { cursor: pointer; user-select: none; font-weight: 500; transition: background 0.1s; } 
         .constraint-cell:hover { filter: brightness(0.95); background: #f1f5f9; }
         
-        /* 螢幕尺寸太小時的極限自適應 */
         @media (max-width: 1200px) {
             .main-layout { flex-direction: column; }
             .sidebar { flex: 1 1 auto; width: 100%; }
@@ -87,7 +89,7 @@
 
 <header>
     <h1>📅 智能排班系統</h1>
-    <p class="subtitle">專業電腦協同版 ｜ 自動融合 N 更環境與硬性約束條件</p>
+    <p class="subtitle">專業電腦協同版 ｜ 獨立假期與年假（AL）獨立雙流水計算環境</p>
 </header>
 
 <div class="main-layout">
@@ -114,25 +116,23 @@
         </div>
 
         <div class="card">
-            <div class="card-title">🔄 N 更輪班規則</div>
-            <div class="n-rule-group">
-                <div class="row">
-                    <div><label>每日人數</label><input type="number" id="nDailyNeed" value="3" min="1"></div>
-                    <div><label>連續上班</label><input type="number" id="nWorkDays" value="3" min="1"></div>
-                    <div><label>強制休息</label><input type="number" id="nRestDays" value="2" min="0"></div>
-                </div>
-                <small>⚠️ 系統會依此規則進行智能排班。在條件表中點擊 [N] 僅代表該日指定為 N 更，不再自動擴展填寫後續日子。</small>
+            <div class="card-title">🌙 N 更特殊排班說明</div>
+            <div class="n-rule-group" style="background: #f1f5f9; border-color: #cbd5e1;">
+                <small style="color: var(--text); font-weight: 600;">💡 N 更及 AL 目前為純手動排班模式：</small>
+                <small style="margin-top: 4px;">• 系統自動排班時**不會**隨機生成任何 N 更或 AL。</small>
+                <small>• 只有在右側表格內點選指定的 [N] 或 [AL] 才會在最終班表中鎖定並生效。</small>
             </div>
         </div>
 
         <div class="card">
-            <div class="card-title">🛡️ 硬約束指標</div>
+            <div class="card-title">🛡️ 假期與年假硬約束指標</div>
             <div class="row">
                 <div><label>最長連續上班</label><input type="number" id="maxConsecutiveDays" value="6" min="1"></div>
                 <div><label>最長連續休息</label><input type="number" id="maxConsecutiveRestDays" value="3" min="1"></div>
             </div>
-            <div>
-                <label>每人每月最多休息天數</label><input type="number" id="maxRestDays" value="10" min="0">
+            <div class="row">
+                <div><label>每人每月最多休息</label><input type="number" id="maxRestDays" value="10" min="0"></div>
+                <!-- 已移除「每人每月最多 AL」輸入欄位 -->
             </div>
         </div>
 
@@ -163,7 +163,7 @@
                 <span>📋 員工期望與排班條件表</span>
                 <button onclick="clearConstraints()" class="btn-danger" style="padding: 4px 10px; font-size: 0.8em;">🗑️ 清空條件</button>
             </div>
-            <small style="margin-bottom:10px;">💡 操作指南：滑鼠點擊儲存格切換限制 (無限制 → 休 → A → C → D → P → N)</small>
+            <small style="margin-bottom:10px;">💡 操作指南：滑鼠點擊儲存格切換限制 (無限制 → 休 → A → C → D → P → N → AL)</small>
             <div id="constraint-table" class="table-container"></div>
         </div>
 
@@ -184,11 +184,11 @@
 </div>
 
 <script>
-    const SHIFT_NAMES = ['休', 'A', 'C', 'D', 'P', 'N'];
+    const SHIFT_NAMES = ['休', 'A', 'C', 'D', 'P', 'N', 'AL'];
     const SHIFT_MAP = Object.fromEntries(SHIFT_NAMES.map((n,i)=>[n,i]));
 
-    let WEEKDAY_MIN = [0,6,6,6,5,0]; let WEEKDAY_MAX = [0,7,8,6,5,0];
-    let WEEKEND_MIN = [0,5,0,3,5,0]; let WEEKEND_MAX = [0,5,1,4,5,0];
+    let WEEKDAY_MIN = [0,6,6,6,5,0,0]; let WEEKDAY_MAX = [0,7,8,6,5,0,0];
+    let WEEKEND_MIN = [0,5,0,3,5,0,0]; let WEEKEND_MAX = [0,5,1,4,5,0,0];
     let NUM_PEOPLE = 39;
     
     const targetDate = new Date();
@@ -196,16 +196,16 @@
     let currentYear = targetDate.getFullYear();
     let currentMonth = targetDate.getMonth() + 1; 
 
-    let monthData = null, leaveEntries = [];
+    let monthData = null;
     let currentSchedule = null, currentNames = null;
     let constraintMatrix = [];
 
     function updateDemand() {
         const g = id => parseInt(document.getElementById(id).value)||0;
-        WEEKDAY_MIN = [0,g('wdAMin'),g('wdCMin'),g('wdDMin'),g('wdPMin'),0];
-        WEEKDAY_MAX = [0,g('wdAMax'),g('wdCMax'),g('wdDMax'),g('wdPMax'),0];
-        WEEKEND_MIN = [0,g('weAMin'),g('weCMin'),g('weDMin'),g('wePMin'),0];
-        WEEKEND_MAX = [0,g('weAMax'),g('weCMax'),g('weDMax'),g('wePMax'),0];
+        WEEKDAY_MIN = [0,g('wdAMin'),g('wdCMin'),g('wdDMin'),g('wdPMin'),0,0];
+        WEEKDAY_MAX = [0,g('wdAMax'),g('wdCMax'),g('wdDMax'),g('wdPMax'),0,0];
+        WEEKEND_MIN = [0,g('weAMin'),g('weCMin'),g('weDMin'),g('wePMin'),0,0];
+        WEEKEND_MAX = [0,g('weAMax'),g('weCMax'),g('weDMax'),g('wePMax'),0,0];
         clearOutput();
     }
 
@@ -284,6 +284,7 @@
         if(!monthData) return;
         constraintMatrix = Array.from({length:NUM_PEOPLE}, ()=>new Array(monthData.numDays).fill(null));
     }
+
     function renderConstraintTable() {
         const container = document.getElementById('constraint-table');
         if(!monthData) return;
@@ -305,31 +306,24 @@
         html += '</tbody></table>';
         container.innerHTML = html;
     }
-    
-    // 已修正：單純循環切換目前儲存格，點選 N 時不再連帶自動變更前後日期的欄位
+
     function cycleConstraint(p, d) {
         let val = constraintMatrix[p][d];
-        if (val === null) {
-            constraintMatrix[p][d] = 0; // 無限制 -> 休
-        } else if (val === 0) {
-            constraintMatrix[p][d] = 1; // 休 -> A
-        } else if (val === 1) {
-            constraintMatrix[p][d] = 2; // A -> C
-        } else if (val === 2) {
-            constraintMatrix[p][d] = 3; // C -> D
-        } else if (val === 3) {
-            constraintMatrix[p][d] = 4; // D -> P
-        } else if (val === 4) {
-            constraintMatrix[p][d] = 5; // P -> N
-        } else if (val === 5) {
-            constraintMatrix[p][d] = null; // N -> 無限制
-        }
+        if (val === null) constraintMatrix[p][d] = 0;
+        else if (val === 0) constraintMatrix[p][d] = 1;
+        else if (val === 1) constraintMatrix[p][d] = 2;
+        else if (val === 2) constraintMatrix[p][d] = 3;
+        else if (val === 3) constraintMatrix[p][d] = 4;
+        else if (val === 4) constraintMatrix[p][d] = 5;
+        else if (val === 5) constraintMatrix[p][d] = 6;
+        else if (val === 6) constraintMatrix[p][d] = null;
         renderConstraintTable();
     }
 
     function clearConstraints() {
         if(confirm('確定要清除所有手動設定的排班條件嗎？')) { initConstraintMatrix(); renderConstraintTable(); clearOutput(); }
     }
+
     function buildFixedFromConstraints() {
         if(!monthData) return null;
         const fixed = Array.from({length:NUM_PEOPLE}, ()=>new Array(monthData.numDays).fill(-1));
@@ -341,199 +335,173 @@
     }
 
     function generateNPattern(fixed) {
-        const need = +document.getElementById('nDailyNeed').value || 3;
-        const work = +document.getElementById('nWorkDays').value || 3;
-        const rest = +document.getElementById('nRestDays').value || 2;
         const numDays = monthData.numDays;
-
-        WEEKDAY_MIN[5] = need; WEEKDAY_MAX[5] = need;
-        WEEKEND_MIN[5] = need; WEEKEND_MAX[5] = need;
-
-        const manualNCount = new Array(numDays).fill(0);
-        for (let d = 0; d < numDays; d++) {
-            for (let p = 0; p < NUM_PEOPLE; p++) { if (constraintMatrix[p][d] === 5) manualNCount[d]++; }
-        }
-
-        const lockedN = Array.from({length: NUM_PEOPLE}, () => new Array(numDays).fill(false));
-        const lockedRest = Array.from({length: NUM_PEOPLE}, () => new Set());
-        for (let p = 0; p < NUM_PEOPLE; p++) {
-            for (let d = 0; d < numDays; d++) {
-                if (constraintMatrix[p][d] === 5) lockedN[p][d] = true;
-                if (constraintMatrix[p][d] === 0) lockedRest[p].add(d);
-            }
-        }
-
-        for (let p = 0; p < NUM_PEOPLE; p++) {
-            let d = 0;
-            while (d < numDays) {
-                if (lockedN[p][d]) {
-                    let len = 0; while (d < numDays && lockedN[p][d]) { len++; d++; }
-                    if (len !== work) {
-                        document.getElementById('status').innerHTML = `❌ 錯誤：員工 ${getNames()[p] || p+1} 的手動N更長度為 ${len} 天，與N更規則「連續上班${work}天」衝突！`;
-                        return null;
-                    }
-                } else d++;
-            }
-        }
-
-        const existingBlocks = [];
-        for (let p = 0; p < NUM_PEOPLE; p++) {
-            let d = 0;
-            while (d < numDays) {
-                if (lockedN[p][d]) {
-                    let start = d; while (d < numDays && lockedN[p][d]) d++;
-                    existingBlocks.push({p, start, length: d - start});
-                } else d++;
-            }
-        }
-
-        const restBlockDays = Array.from({length: NUM_PEOPLE}, () => new Set());
-        for (let p = 0; p < NUM_PEOPLE; p++) {
-            for (let d of lockedRest[p]) restBlockDays[p].add(d);
-            for (const block of existingBlocks.filter(b => b.p === p)) {
-                const restStart = block.start + block.length;
-                for (let i = restStart; i < Math.min(restStart + rest, numDays); i++) restBlockDays[p].add(i);
-            }
-        }
-
         const nMatrix = Array.from({length: NUM_PEOPLE}, () => new Array(numDays).fill(false));
-        for (const block of existingBlocks) for (let i = 0; i < block.length; i++) nMatrix[block.p][block.start + i] = true;
-
         for (let d = 0; d < numDays; d++) {
-            let currentTotal = 0; for (let p = 0; p < NUM_PEOPLE; p++) { if (nMatrix[p][d]) currentTotal++; }
-            if (currentTotal >= need) continue;
-
-            const needed = need - currentTotal; const available = [];
             for (let p = 0; p < NUM_PEOPLE; p++) {
-                if (nMatrix[p][d] || restBlockDays[p].has(d)) continue;
-                let lastN = -1; for (let i = d - 1; i >= 0; i--) { if (nMatrix[p][i]) { lastN = i; break; } }
-                if (lastN !== -1) { let blockEnd = lastN + 1; if (d < blockEnd + rest) continue; }
-
-                let can = true;
-                for (let i = 0; i < work; i++) {
-                    const fd = d + i; if (fd >= numDays) break;
-                    if (restBlockDays[p].has(fd) || nMatrix[p][fd]) { can = false; break; }
-                    let totalOnFd = 0; for (let pp = 0; pp < NUM_PEOPLE; pp++) { if (nMatrix[pp][fd]) totalOnFd++; }
-                    if (totalOnFd >= Math.max(need, manualNCount[fd])) { can = false; break; }
-                }
-                if (can) available.push(p);
-            }
-
-            if (available.length < needed) {
-                const date = monthData.days[d].getDate();
-                document.getElementById('status').innerHTML = `❌ N更排班失敗：第 ${date} 日人手不足（可用 ${available.length} 人，尚缺 ${needed} 人）。請調整手動約束。`;
-                return null;
-            }
-
-            shuffleArray(available);
-            const selected = available.slice(0, needed);
-            for (const p of selected) {
-                for (let i = 0; i < work && (d + i) < numDays; i++) nMatrix[p][d + i] = true;
-                const restStart = d + work;
-                for (let i = restStart; i < Math.min(restStart + rest, numDays); i++) restBlockDays[p].add(i);
+                if (constraintMatrix[p][d] === 5) nMatrix[p][d] = true;
             }
         }
-
-        const forcedRest = Array.from({length: NUM_PEOPLE}, () => new Array(numDays).fill(false));
-        for (let p = 0; p < NUM_PEOPLE; p++) for (let d = 0; d < numDays; d++) if (restBlockDays[p].has(d)) forcedRest[p][d] = true;
-        return { matrix: nMatrix, forcedRest };
+        return { matrix: nMatrix };
     }
 
     function shuffleArray(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } }
 
-    function solveRoster(fixed, nMatrix, forcedRest, maxConsecutiveDays, maxConsecutiveRestDays) {
+    function solveRoster(fixed, nMatrix, maxConsecutiveDays, maxConsecutiveRestDays) {
         const numDays = monthData.numDays, isHoliday = monthData.isHoliday;
         let roster = Array.from({length:NUM_PEOPLE}, () => new Array(numDays).fill(0));
         if (fixed) for (let p=0; p<NUM_PEOPLE; p++) for (let d=0; d<numDays; d++) if (fixed[p][d]!==-1) roster[p][d] = fixed[p][d];
         if (nMatrix) for (let p=0; p<NUM_PEOPLE; p++) for (let d=0; d<numDays; d++) if (nMatrix[p][d]) roster[p][d] = 5;
-        for (let p=0; p<NUM_PEOPLE; p++) for (let d=0; d<numDays; d++) if (forcedRest[p][d]) roster[p][d] = 0;
 
         for (let d=0; d<numDays; d++) {
             const dMin = isHoliday[d] ? WEEKEND_MIN : WEEKDAY_MIN;
             const dMax = isHoliday[d] ? WEEKEND_MAX : WEEKDAY_MAX;
-            const cnt = [0,0,0,0,0,0]; const unfixed = [];
+            const cnt = Array(7).fill(0); const unfixed = [];
             for (let p=0; p<NUM_PEOPLE; p++) {
                 if (roster[p][d] !== 0) cnt[roster[p][d]]++;
-                else { if (forcedRest[p][d]) continue; unfixed.push(p); }
+                else if (!fixed || fixed[p][d] !== 0) unfixed.push(p);
             }
             const neededMin = [];
             for (let s=1; s<=4; s++) { const need = Math.max(0, dMin[s] - cnt[s]); for (let k=0; k<need; k++) neededMin.push(s); }
             const avail = [...unfixed]; shuffleArray(avail);
             const selMin = avail.slice(0, neededMin.length);
             for (let i=0; i<selMin.length; i++) roster[selMin[i]][d] = neededMin[i];
-            const usedSet = new Set(selMin); const remaining = unfixed.filter(p => !usedSet.has(p));
-            const newCnt = [0,0,0,0,0,0]; for (let p=0; p<NUM_PEOPLE; p++) if (roster[p][d] !== 0) newCnt[roster[p][d]]++;
+            const usedSet = new Set(selMin);
+            const remaining = unfixed.filter(p => !usedSet.has(p));
+            const newCnt = Array(7).fill(0); for (let p=0; p<NUM_PEOPLE; p++) if (roster[p][d] !== 0) newCnt[roster[p][d]]++;
             const remainingAvail = [...remaining]; shuffleArray(remainingAvail);
             let ptr = 0;
-            for (let s=1; s<=4; s++) { while (newCnt[s] < dMax[s] && ptr < remainingAvail.length) { roster[remainingAvail[ptr]][d] = s; newCnt[s]++; ptr++; } }
+            for (let s=1; s<=4; s++) while (newCnt[s] < dMax[s] && ptr < remainingAvail.length) { roster[remainingAvail[ptr]][d] = s; newCnt[s]++; ptr++; }
             for (let i=ptr; i<remainingAvail.length; i++) roster[remainingAvail[i]][d] = 0;
         }
 
         const maxRest = parseInt(document.getElementById('maxRestDays').value)||10;
+        const minRestProtected = Math.max(0, maxRest - 2);
+        // 已移除 maxAL 讀取
+
         function calcConflicts(sched) {
-            let total = 0, restViolations = 0, consViolations = 0, consRestViolations = 0;
+            let score = 0, restViolations = 0, consViolations = 0, consRestViolations = 0;
+            // 移除 alViolations 相關統計
             for (let p=0; p<NUM_PEOPLE; p++) {
-                let cons = 0; let consRest = 0;
+                let consDays = 0, consRest = 0;
                 for (let d=0; d<numDays; d++) {
-                    if (sched[p][d] !== 0) { 
-                        cons++; if (cons > maxConsecutiveDays) { total += (cons - maxConsecutiveDays) * 50; consViolations++; } consRest = 0; 
-                    } else { 
-                        cons = 0; consRest++; if (consRest > maxConsecutiveRestDays) { total += (consRest - maxConsecutiveRestDays) * 50; consRestViolations++; } 
+                    const shift = sched[p][d];
+                    if (shift !== 0 && shift !== 6) {
+                        consDays++;
+                        if (consDays > maxConsecutiveDays) { score += (consDays - maxConsecutiveDays) * 500; consViolations++; }
+                        consRest = 0;
+                    } else {
+                        consDays = 0;
+                        if (shift === 0) {
+                            consRest++;
+                            if (consRest > maxConsecutiveRestDays) { score += Math.pow(consRest - maxConsecutiveRestDays, 2) * 2000; consRestViolations++; }
+                        } else consRest = 0;
                     }
                 }
                 const restDays = sched[p].filter(v => v===0).length;
-                if (restDays > maxRest) { const excess = restDays - maxRest; total += excess * 100; restViolations += excess; }
+                // 不再檢查 alDays 上限
+                if (restDays > maxRest) { score += (restDays - maxRest) * 50000; restViolations += restDays - maxRest; }
+                if (restDays < minRestProtected) score += (minRestProtected - restDays) * 1000;
             }
-            return { total, restViolations, consViolations, consRestViolations };
+            return { total: score, restViolations, consViolations, consRestViolations };
         }
+
         function delta(p1,p2,d,sched) {
             const o1 = sched[p1][d], o2 = sched[p2][d]; if (o1 === o2) return 0;
-            if (nMatrix && (nMatrix[p1][d] || nMatrix[p2][d])) return 0;
             if (fixed && (fixed[p1][d]!==-1 || fixed[p2][d]!==-1)) return 0;
-            if (forcedRest[p1][d] || forcedRest[p2][d]) return 0;
-            sched[p1][d] = o2; sched[p2][d] = o1; const nc = calcConflicts(sched).total;
-            sched[p1][d] = o1; sched[p2][d] = o2; return nc - calcConflicts(sched).total;
+            if (nMatrix && (nMatrix[p1][d] || nMatrix[p2][d])) return 0;
+            const oldScore = calcConflicts(sched).total;
+            sched[p1][d] = o2; sched[p2][d] = o1; const newScore = calcConflicts(sched).total;
+            sched[p1][d] = o1; sched[p2][d] = o2; return newScore - oldScore;
         }
-        let schedule = roster, conflictInfo = calcConflicts(schedule), conflict = conflictInfo.total;
+
+        let schedule = roster, conflict = calcConflicts(schedule).total;
         const start = Date.now();
-        for (let iter=0; iter<300000; iter++) {
-            if (conflict === 0 || Date.now() - start > 15000) break;
+        for (let iter=0; iter<500000; iter++) {
+            if (conflict === 0 || Date.now() - start > 12000) break;
             const p1 = Math.floor(Math.random() * NUM_PEOPLE); const d = Math.floor(Math.random() * numDays);
             let p2; do { p2 = Math.floor(Math.random() * NUM_PEOPLE); } while (p2 === p1);
-            if (nMatrix && (nMatrix[p1][d] || nMatrix[p2][d])) continue;
             if (fixed && (fixed[p1][d]!==-1 || fixed[p2][d]!==-1)) continue;
-            if (forcedRest[p1][d] || forcedRest[p2][d]) continue;
+            if (nMatrix && (nMatrix[p1][d] || nMatrix[p2][d])) continue;
             const dlt = delta(p1,p2,d,schedule);
-            if (dlt <= 0 || Math.random() < 0.01) { [schedule[p1][d], schedule[p2][d]] = [schedule[p2][d], schedule[p1][d]]; conflict += dlt; }
+            if (dlt <= 0 || Math.random() < 0.005) { [schedule[p1][d], schedule[p2][d]] = [schedule[p2][d], schedule[p1][d]]; conflict += dlt; }
         }
         const finalInfo = calcConflicts(schedule);
         const success = finalInfo.consViolations === 0 && finalInfo.restViolations === 0 && finalInfo.consRestViolations === 0;
-        return { success, schedule };
+        return { success, schedule, conflicts: finalInfo.total };
     }
 
     function displaySchedule(schedule, names, maxConsecutiveDays=6, maxConsecutiveRestDays=3) { 
         const numDays = monthData.numDays, days = monthData.days, isHoliday = monthData.isHoliday;
         const maxRest = parseInt(document.getElementById('maxRestDays').value)||10;
+        // 不再取得 maxAL
         let conflictSet = new Set();
+        
         for (let p=0; p<NUM_PEOPLE; p++) { 
-            let c=0, cs=-1; for (let d=0; d<numDays; d++) { if (schedule[p][d]!==0) { c++; if(c===1) cs=d; } else { c=0; cs=-1; } if (c > maxConsecutiveDays) { for(let i=cs; i<=d; i++) conflictSet.add(`${p},${i}`); c=0; cs=-1; } } 
-            let cr=0, crs=-1; for (let d=0; d<numDays; d++) { if (schedule[p][d]===0) { cr++; if(cr===1) crs=d; } else { cr=0; crs=-1; } if (cr > maxConsecutiveRestDays) { for(let i=crs; i<=d; i++) conflictSet.add(`${p},${i}`); cr=0; crs=-1; } }
+            let c=0, cs=-1; 
+            for (let d=0; d<numDays; d++) { 
+                if (schedule[p][d]!==0 && schedule[p][d]!==6) { c++; if(c===1) cs=d; } else { c=0; cs=-1; } 
+                if (c > maxConsecutiveDays) { for(let i=cs; i<=d; i++) conflictSet.add(`${p},${i}`); c=0; cs=-1; } 
+            } 
+            let cr=0, crs=-1; 
+            for (let d=0; d<numDays; d++) { 
+                if (schedule[p][d]===0) { cr++; if(cr===1) crs=d; } else { cr=0; crs=-1; } 
+                if (cr > maxConsecutiveRestDays) { for(let i=crs; i<=d; i++) conflictSet.add(`${p},${i}`); cr=0; crs=-1; } 
+            }
             if (schedule[p].filter(v=>v===0).length > maxRest) for (let d=0; d<numDays; d++) if (schedule[p][d]===0) conflictSet.add(`${p},${d}`); 
+            // 移除 AL 天數檢查
         }
+        
         for (let d=0; d<numDays; d++) { 
-            const dMin=isHoliday[d]?WEEKEND_MIN:WEEKDAY_MIN, dMax=isHoliday[d]?WEEKEND_MAX:WEEKDAY_MAX; const cnt=[0,0,0,0,0,0]; 
+            const dMin=isHoliday[d]?WEEKEND_MIN:WEEKDAY_MIN, dMax=isHoliday[d]?WEEKEND_MAX:WEEKDAY_MAX; const cnt=Array(7).fill(0); 
             for(let p=0;p<NUM_PEOPLE;p++) cnt[schedule[p][d]]++; 
-            let dayManualN = 0; for(let pp=0; pp<NUM_PEOPLE; pp++) if(constraintMatrix[pp][d] === 5) dayManualN++;
-            const currentNMin = Math.max(dMin[5], dayManualN); const currentNMax = Math.max(dMax[5], dayManualN);
-            for (let s=1; s<=5; s++) { 
-                let minL = dMin[s], maxL = dMax[s]; if (s === 5) { minL = currentNMin; maxL = currentNMax; }
-                if(cnt[s]<minL||cnt[s]>maxL) for(let p=0;p<NUM_PEOPLE;p++) if(schedule[p][d]===s) conflictSet.add(`${p},${d}`); 
+            for (let s=1; s<=4; s++) { 
+                if(cnt[s]<dMin[s]||cnt[s]>dMax[s]) for(let p=0;p<NUM_PEOPLE;p++) if(schedule[p][d]===s) conflictSet.add(`${p},${d}`); 
             } 
         }
-        let html = '<table><thead><tr><th class="person-col">姓名</th>'; for (let d=0; d<numDays; d++) html += `<th class="${isHoliday[d]?'weekend':''}">${days[d].getDate()}<br>週${'日一二三四五六'[days[d].getDay()]}</th>`; html += '</tr></thead><tbody>';
-        for (let p=0; p<NUM_PEOPLE; p++) { html += `<tr><td class="person-col">${names[p]}</td>`; for (let d=0; d<numDays; d++) { const s=schedule[p][d], sn=SHIFT_NAMES[s]; let cls = s===0?'rest':`shift-${SHIFT_NAMES[s]}`; if(isHoliday[d]) cls+=' weekend'; if(conflictSet.has(`${p},${d}`)) cls+=' conflict'; html += `<td class="${cls}">${sn}</td>`; } html += '</tr>'; } html += '</tbody></table>';
+        
+        let html = '<table><thead><tr><th class="person-col">姓名</th>'; 
+        for (let d=0; d<numDays; d++) html += `<th class="${isHoliday[d]?'weekend':''}">${days[d].getDate()}<br>週${'日一二三四五六'[days[d].getDay()]}</th>`; 
+        html += '</tr></thead><tbody>';
+        
+        for (let p=0; p<NUM_PEOPLE; p++) { 
+            html += `<tr><td class="person-col">${names[p]}</td>`; 
+            for (let d=0; d<numDays; d++) { 
+                const s=schedule[p][d], sn=SHIFT_NAMES[s]; 
+                let cls = s===0?'rest':`shift-${SHIFT_NAMES[s]}`; 
+                if(isHoliday[d]) cls+=' weekend'; 
+                if(conflictSet.has(`${p},${d}`)) cls+=' conflict'; 
+                html += `<td class="${cls}">${sn}</td>`; 
+            } 
+            html += '</tr>'; 
+        } 
+        html += '</tbody>';
+        
+        // 各更計數行
+        html += '<tfoot><tr>';
+        html += '<td class="person-col" style="background:#f1f5f9; font-weight:700;">📊 各更計數</td>';
+        for (let d=0; d<numDays; d++) {
+            const cnt = Array(7).fill(0);
+            for (let p=0; p<NUM_PEOPLE; p++) cnt[schedule[p][d]]++;
+            let cellContent = '';
+            for (let s=0; s<7; s++) {
+                if (cnt[s] > 0) {
+                    const cls = s===0?'rest':`shift-${SHIFT_NAMES[s]}`;
+                    cellContent += `<span class="${cls}" style="font-size:0.75em; margin-right:4px;">${SHIFT_NAMES[s]}:${cnt[s]}</span>`;
+                }
+            }
+            html += `<td style="background:#f8fafc; font-size:0.75em; vertical-align:middle;">${cellContent}</td>`;
+        }
+        html += '</tr></tfoot>';
+        
+        html += '</table>';
         document.getElementById('schedule-output').innerHTML = html;
-        document.getElementById('summary').innerHTML = `<h3>📊 檢查報告</h3><p style="color:#16a34a; font-weight:600; margin-top:6px;">✓ 全部排班已完美生成！所有硬性約束（最長連休、最多休假、連班限制）均已滿足。</p>`;
+        
+        if (conflictSet.size === 0) {
+            document.getElementById('summary').innerHTML = `<h3>📊 檢查報告</h3><p style="color:#16a34a; font-weight:600; margin-top:6px;">✓ 全部班表已完美生成！所有常規假期、年假（AL）獨立分配完畢，且符合全體硬約束條件。</p>`;
+        } else {
+            document.getElementById('summary').innerHTML = `<h3>📊 檢查報告</h3><p style="color:#ef4444; font-weight:600; margin-top:6px;">⚠️ 班表已強制輸出。部分區塊因手動年假或特殊更度衝突打破了連續規則，已為您亮紅燈提示，您可以參考並進行微調。</p>`;
+        }
     }
 
     function downloadCSV() { 
@@ -550,24 +518,28 @@
         const maxConsecutiveDays = parseInt(document.getElementById('maxConsecutiveDays').value) || 6;
         const maxConsecutiveRestDays = parseInt(document.getElementById('maxConsecutiveRestDays').value) || 3;
         const names = getNames(); if(!names) return;
+        
         const fixed = buildFixedFromConstraints();
         const nResult = generateNPattern(fixed); if (!nResult) return;
-        const { matrix: nMatrix, forcedRest } = nResult;
+        const { matrix: nMatrix } = nResult;
         
-        document.getElementById('status').innerHTML = '⏳ 正在執行矩陣運算與演算法優化...';
+        document.getElementById('status').innerHTML = '⏳ 正在執行雙規則流水矩陣優化中...';
         const btn = document.getElementById('generateBtn'); btn.disabled = true; btn.textContent = '計算中...';
         await new Promise(r=>setTimeout(r,100));
         
-        let result = null;
-        for(let i=1; i<=5; i++) { result = solveRoster(fixed, nMatrix, forcedRest, maxConsecutiveDays, maxConsecutiveRestDays); if(result.success) break; await new Promise(r=>setTimeout(r,50)); }
+        let bestResult = null;
+        for(let i=1; i<=5; i++) { 
+            let result = solveRoster(fixed, nMatrix, maxConsecutiveDays, maxConsecutiveRestDays); 
+            if(!bestResult || result.conflicts < bestResult.conflicts) bestResult = result;
+            if(result.success) break; 
+            await new Promise(r=>setTimeout(r,50)); 
+        }
         
         btn.disabled = false; btn.textContent = '🚀 開始智能計算班表';
-        if(result && result.success) { 
-            document.getElementById('status').innerHTML = '✅ 班表生成成功！'; 
-            displaySchedule(result.schedule, names, maxConsecutiveDays, maxConsecutiveRestDays); 
-            currentSchedule = result.schedule; currentNames = names; document.getElementById('downloadBtn').disabled = false; 
-        } else { 
-            document.getElementById('status').innerHTML = '❌ 無法在限制內找到完美解。請嘗試放寬「連休天數」或減少手動 N 更限制。'; 
+        if(bestResult) { 
+            document.getElementById('status').innerHTML = '✅ 班表生成完畢！'; 
+            displaySchedule(bestResult.schedule, names, maxConsecutiveDays, maxConsecutiveRestDays); 
+            currentSchedule = bestResult.schedule; currentNames = names; document.getElementById('downloadBtn').disabled = false; 
         }
     }
 
