@@ -55,8 +55,7 @@
         .demand-item span:first-child { min-width: 35px; font-weight: 600; }
         .demand-item input { width: 55px; text-align: center; padding: 4px; border-radius: 6px; }
         
-        .n-rule-group { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; transition: all 0.3s; }
-        .n-rule-group.disabled { background: #f1f5f9; border-color: #cbd5e1; opacity: 0.65; }
+        .n-rule-group { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; }
         small { font-size: 0.8em; color: var(--text-secondary); display: block; margin-top: 4px; line-height: 1.4; }
         
         .status { text-align: center; font-weight: 600; background: #e2e8f0; padding: 12px; border-radius: 8px; font-size: 0.95em; }
@@ -115,17 +114,14 @@
         </div>
 
         <div class="card">
-            <div class="card-title" style="justify-content: space-between;">
-                <span>🔄 N 更輪班規則</span>
-                <button id="toggleNRuleBtn" onclick="toggleNRule()" class="btn-success" style="padding: 4px 10px; font-size: 0.8em;">🟢 目前狀態：已啟用</button>
-            </div>
-            <div id="nRuleGroup" class="n-rule-group">
+            <div class="card-title">🔄 N 更輪班規則</div>
+            <div class="n-rule-group">
                 <div class="row">
                     <div><label>每日人數</label><input type="number" id="nDailyNeed" value="3" min="1"></div>
                     <div><label>連續上班</label><input type="number" id="nWorkDays" value="3" min="1"></div>
                     <div><label>強制休息</label><input type="number" id="nRestDays" value="2" min="0"></div>
                 </div>
-                <small id="nRuleTip">⚠️ 系統會依此規則進行智能排班。在條件表中點擊 [N] 僅代表該日指定為 N 更，不會自動設定之後的日子。</small>
+                <small>⚠️ 系統會依此規則進行智能排班。在條件表中點擊 [N] 僅代表該日指定為 N 更，不再自動擴展填寫後續日子。</small>
             </div>
         </div>
 
@@ -194,7 +190,6 @@
     let WEEKDAY_MIN = [0,6,6,6,5,0]; let WEEKDAY_MAX = [0,7,8,6,5,0];
     let WEEKEND_MIN = [0,5,0,3,5,0]; let WEEKEND_MAX = [0,5,1,4,5,0];
     let NUM_PEOPLE = 39;
-    let IS_N_RULE_ENABLED = true; // 控制是否啟用 N 更輪班規則
     
     const targetDate = new Date();
     targetDate.setMonth(targetDate.getMonth() + 1); 
@@ -204,29 +199,6 @@
     let monthData = null, leaveEntries = [];
     let currentSchedule = null, currentNames = null;
     let constraintMatrix = [];
-
-    function toggleNRule() {
-        IS_N_RULE_ENABLED = !IS_N_RULE_ENABLED;
-        const btn = document.getElementById('toggleNRuleBtn');
-        const group = document.getElementById('nRuleGroup');
-        const tip = document.getElementById('nRuleTip');
-        const inputs = group.querySelectorAll('input');
-
-        if (IS_N_RULE_ENABLED) {
-            btn.textContent = '🟢 目前狀態：已啟用';
-            btn.className = 'btn-success';
-            group.classList.remove('disabled');
-            inputs.forEach(i => i.disabled = false);
-            tip.innerHTML = '⚠️ 系統會依此規則進行智能排班。在條件表中點擊 [N] 僅代表該日指定為 N 更，不會自動設定之後的日子。';
-        } else {
-            btn.textContent = '🔴 目前狀態：已停用';
-            btn.className = 'btn-danger';
-            group.classList.add('disabled');
-            inputs.forEach(i => i.disabled = true);
-            tip.innerHTML = 'ℹ️ N 更規則已停用。條件表中的 [N] 僅會視為固定班別（同 A/C/D 更），其餘不進行干涉與延伸。';
-        }
-        clearOutput();
-    }
 
     function updateDemand() {
         const g = id => parseInt(document.getElementById(id).value)||0;
@@ -334,22 +306,23 @@
         container.innerHTML = html;
     }
     
+    // 已修正：單純循環切換目前儲存格，點選 N 時不再連帶自動變更前後日期的欄位
     function cycleConstraint(p, d) {
         let val = constraintMatrix[p][d];
         if (val === null) {
-            constraintMatrix[p][d] = 0; 
+            constraintMatrix[p][d] = 0; // 無限制 -> 休
         } else if (val === 0) {
-            constraintMatrix[p][d] = 1; 
+            constraintMatrix[p][d] = 1; // 休 -> A
         } else if (val === 1) {
-            constraintMatrix[p][d] = 2; 
+            constraintMatrix[p][d] = 2; // A -> C
         } else if (val === 2) {
-            constraintMatrix[p][d] = 3; 
+            constraintMatrix[p][d] = 3; // C -> D
         } else if (val === 3) {
-            constraintMatrix[p][d] = 4; 
+            constraintMatrix[p][d] = 4; // D -> P
         } else if (val === 4) {
-            constraintMatrix[p][d] = 5; 
+            constraintMatrix[p][d] = 5; // P -> N
         } else if (val === 5) {
-            constraintMatrix[p][d] = null; 
+            constraintMatrix[p][d] = null; // N -> 無限制
         }
         renderConstraintTable();
     }
@@ -368,26 +341,10 @@
     }
 
     function generateNPattern(fixed) {
-        const numDays = monthData.numDays;
-
-        // 如果「未啟用」N更規則，則跳過連續計算塊，直接建立空的對應矩陣，並讓 N 更的上下限需求歸零（由手動點選覆蓋）
-        if (!IS_N_RULE_ENABLED) {
-            WEEKDAY_MIN[5] = 0; WEEKDAY_MAX[5] = NUM_PEOPLE;
-            WEEKEND_MIN[5] = 0; WEEKEND_MAX[5] = NUM_PEOPLE;
-            const nMatrix = Array.from({length: NUM_PEOPLE}, () => new Array(numDays).fill(false));
-            const forcedRest = Array.from({length: NUM_PEOPLE}, () => new Array(numDays).fill(false));
-            // 將手動點選 N 的部分直接標註至 N 矩陣
-            for (let p = 0; p < NUM_PEOPLE; p++) {
-                for (let d = 0; d < numDays; d++) {
-                    if (constraintMatrix[p][d] === 5) nMatrix[p][d] = true;
-                }
-            }
-            return { matrix: nMatrix, forcedRest };
-        }
-
         const need = +document.getElementById('nDailyNeed').value || 3;
         const work = +document.getElementById('nWorkDays').value || 3;
         const rest = +document.getElementById('nRestDays').value || 2;
+        const numDays = monthData.numDays;
 
         WEEKDAY_MIN[5] = need; WEEKDAY_MAX[5] = need;
         WEEKEND_MIN[5] = need; WEEKEND_MAX[5] = need;
@@ -412,7 +369,7 @@
                 if (lockedN[p][d]) {
                     let len = 0; while (d < numDays && lockedN[p][d]) { len++; d++; }
                     if (len !== work) {
-                        document.getElementById('status').innerHTML = `❌ 錯誤：員工 ${getNames()[p] || p+1} 的手動N更長度為 ${len} 天，與N更規則「連續上班${work}天」衝突！<br>💡 提示：若不打算限制連續區間，可點擊上方按鈕「停用」N更規則。`;
+                        document.getElementById('status').innerHTML = `❌ 錯誤：員工 ${getNames()[p] || p+1} 的手動N更長度為 ${len} 天，與N更規則「連續上班${work}天」衝突！`;
                         return null;
                     }
                 } else d++;
@@ -464,7 +421,7 @@
 
             if (available.length < needed) {
                 const date = monthData.days[d].getDate();
-                document.getElementById('status').innerHTML = `❌ N更排班失敗：第 ${date} 日人手不足（可用 ${available.length} 人，尚缺 ${needed} 人）。請調整手動約束或停用規則。`;
+                document.getElementById('status').innerHTML = `❌ N更排班失敗：第 ${date} 日人手不足（可用 ${available.length} 人，尚缺 ${needed} 人）。請調整手動約束。`;
                 return null;
             }
 
@@ -493,7 +450,7 @@
 
         for (let d=0; d<numDays; d++) {
             const dMin = isHoliday[d] ? WEEKEND_MIN : WEEKDAY_MIN;
-            const dMax = isHoliday[d] ? WEEKDAY_MAX : WEEKDAY_MAX;
+            const dMax = isHoliday[d] ? WEEKEND_MAX : WEEKDAY_MAX;
             const cnt = [0,0,0,0,0,0]; const unfixed = [];
             for (let p=0; p<NUM_PEOPLE; p++) {
                 if (roster[p][d] !== 0) cnt[roster[p][d]]++;
@@ -501,12 +458,6 @@
             }
             const neededMin = [];
             for (let s=1; s<=4; s++) { const need = Math.max(0, dMin[s] - cnt[s]); for (let k=0; k<need; k++) neededMin.push(s); }
-            
-            // 如果沒啟用 N 更輪班規則，且該日原本 N 更人數沒達到每日基本預期（通常未啟用時由基本每更人數控制，這裡處理基本安全防禦）
-            if (!IS_N_RULE_ENABLED) {
-                // 這裡的 N 更完全由固定班表指定，不需要演算法自動補人
-            }
-
             const avail = [...unfixed]; shuffleArray(avail);
             const selMin = avail.slice(0, neededMin.length);
             for (let i=0; i<selMin.length; i++) roster[selMin[i]][d] = neededMin[i];
@@ -537,8 +488,7 @@
         }
         function delta(p1,p2,d,sched) {
             const o1 = sched[p1][d], o2 = sched[p2][d]; if (o1 === o2) return 0;
-            // 只有當啟用 N 規則時，才鎖定所有的 N 矩陣，若未啟用，則手動點選的 N 比照 fixed 辦理即可
-            if (IS_N_RULE_ENABLED && (nMatrix[p1][d] || nMatrix[p2][d])) return 0;
+            if (nMatrix && (nMatrix[p1][d] || nMatrix[p2][d])) return 0;
             if (fixed && (fixed[p1][d]!==-1 || fixed[p2][d]!==-1)) return 0;
             if (forcedRest[p1][d] || forcedRest[p2][d]) return 0;
             sched[p1][d] = o2; sched[p2][d] = o1; const nc = calcConflicts(sched).total;
@@ -550,7 +500,7 @@
             if (conflict === 0 || Date.now() - start > 15000) break;
             const p1 = Math.floor(Math.random() * NUM_PEOPLE); const d = Math.floor(Math.random() * numDays);
             let p2; do { p2 = Math.floor(Math.random() * NUM_PEOPLE); } while (p2 === p1);
-            if (IS_N_RULE_ENABLED && (nMatrix[p1][d] || nMatrix[p2][d])) continue;
+            if (nMatrix && (nMatrix[p1][d] || nMatrix[p2][d])) continue;
             if (fixed && (fixed[p1][d]!==-1 || fixed[p2][d]!==-1)) continue;
             if (forcedRest[p1][d] || forcedRest[p2][d]) continue;
             const dlt = delta(p1,p2,d,schedule);
@@ -571,23 +521,14 @@
             if (schedule[p].filter(v=>v===0).length > maxRest) for (let d=0; d<numDays; d++) if (schedule[p][d]===0) conflictSet.add(`${p},${d}`); 
         }
         for (let d=0; d<numDays; d++) { 
-            const dMin=isHoliday[d]?WEEKEND_MIN:WEEKDAY_MIN, dMax=isHoliday[d]?WEEKDAY_MAX:WEEKDAY_MAX; const cnt=[0,0,0,0,0,0]; 
+            const dMin=isHoliday[d]?WEEKEND_MIN:WEEKDAY_MIN, dMax=isHoliday[d]?WEEKEND_MAX:WEEKDAY_MAX; const cnt=[0,0,0,0,0,0]; 
             for(let p=0;p<NUM_PEOPLE;p++) cnt[schedule[p][d]]++; 
             let dayManualN = 0; for(let pp=0; pp<NUM_PEOPLE; pp++) if(constraintMatrix[pp][d] === 5) dayManualN++;
-            
-            // 只有啟用 N 規則時才檢查總 N 更人數是否吻合設定值
-            if (IS_N_RULE_ENABLED) {
-                const currentNMin = Math.max(dMin[5], dayManualN); const currentNMax = Math.max(dMax[5], dayManualN);
-                for (let s=1; s<=5; s++) { 
-                    let minL = dMin[s], maxL = dMax[s]; if (s === 5) { minL = currentNMin; maxL = currentNMax; }
-                    if(cnt[s]<minL||cnt[s]>maxL) for(let p=0;p<NUM_PEOPLE;p++) if(schedule[p][d]===s) conflictSet.add(`${p},${d}`); 
-                } 
-            } else {
-                // 未啟用 N 規則時，只檢查 A、C、D、P 更的人數範圍
-                for (let s=1; s<=4; s++) { 
-                    if(cnt[s]<dMin[s]||cnt[s]>dMax[s]) for(let p=0;p<NUM_PEOPLE;p++) if(schedule[p][d]===s) conflictSet.add(`${p},${d}`); 
-                } 
-            }
+            const currentNMin = Math.max(dMin[5], dayManualN); const currentNMax = Math.max(dMax[5], dayManualN);
+            for (let s=1; s<=5; s++) { 
+                let minL = dMin[s], maxL = dMax[s]; if (s === 5) { minL = currentNMin; maxL = currentNMax; }
+                if(cnt[s]<minL||cnt[s]>maxL) for(let p=0;p<NUM_PEOPLE;p++) if(schedule[p][d]===s) conflictSet.add(`${p},${d}`); 
+            } 
         }
         let html = '<table><thead><tr><th class="person-col">姓名</th>'; for (let d=0; d<numDays; d++) html += `<th class="${isHoliday[d]?'weekend':''}">${days[d].getDate()}<br>週${'日一二三四五六'[days[d].getDay()]}</th>`; html += '</tr></thead><tbody>';
         for (let p=0; p<NUM_PEOPLE; p++) { html += `<tr><td class="person-col">${names[p]}</td>`; for (let d=0; d<numDays; d++) { const s=schedule[p][d], sn=SHIFT_NAMES[s]; let cls = s===0?'rest':`shift-${SHIFT_NAMES[s]}`; if(isHoliday[d]) cls+=' weekend'; if(conflictSet.has(`${p},${d}`)) cls+=' conflict'; html += `<td class="${cls}">${sn}</td>`; } html += '</tr>'; } html += '</tbody></table>';
@@ -626,7 +567,7 @@
             displaySchedule(result.schedule, names, maxConsecutiveDays, maxConsecutiveRestDays); 
             currentSchedule = result.schedule; currentNames = names; document.getElementById('downloadBtn').disabled = false; 
         } else { 
-            document.getElementById('status').innerHTML = '❌ 無法在限制內找到完美解。請嘗試放寬「連休天數」或檢查手動限制條件是否產生死結。'; 
+            document.getElementById('status').innerHTML = '❌ 無法在限制內找到完美解。請嘗試放寬「連休天數」或減少手動 N 更限制。'; 
         }
     }
 
